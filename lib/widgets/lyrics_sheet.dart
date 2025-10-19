@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:lyrium/controller.dart';
 import 'package:lyrium/datahelper.dart';
 import 'package:lyrium/models.dart';
+import 'package:provider/provider.dart';
 
 void showLyricsSheet(BuildContext context, LyricsTrack song) {
   showModalBottomSheet(
@@ -15,7 +17,7 @@ void showLyricsSheet(BuildContext context, LyricsTrack song) {
         initialChildSize: 0.6,
         minChildSize: 0.4,
         maxChildSize: 0.95,
-        builder: (context, ctrl) {
+        builder: (context, scroll) {
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Column(
@@ -31,6 +33,21 @@ void showLyricsSheet(BuildContext context, LyricsTrack song) {
                 const SizedBox(height: 12),
                 Row(
                   children: [
+                    IconButton(
+                      onPressed: () {
+                        final ctrl = Provider.of<MusicController>(
+                          context,
+                          listen: false,
+                        );
+
+                        ctrl.setLyrics(song);
+                        if (ctrl.hasAccess) ctrl.setInfo(null); //TODO: Improve
+                        ctrl.setShowTrackMode(true);
+                        Navigator.pop(context);
+                      },
+                      icon: Icon(Icons.play_arrow),
+                    ),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -85,7 +102,7 @@ void showLyricsSheet(BuildContext context, LyricsTrack song) {
                 const SizedBox(height: 16),
                 Expanded(
                   child: SingleChildScrollView(
-                    controller: ctrl,
+                    controller: scroll,
                     child: Text(
                       song.lyrics,
                       style: const TextStyle(height: 1.45, fontSize: 15),

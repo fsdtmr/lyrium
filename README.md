@@ -11,11 +11,13 @@ Opensource lyrics viewer for android.
 
 ## Building
 To get started, make sure you have flutter and its [dependencies](https://flutter.dev/docs/get-started/install) installed, then clone the repository and build your app with the following commands:
-    ```bash
+
+
     git clone https://github.com/yourusername/lyrium.git
     cd lyrium 
     flutter build apk
-    ```
+
+   
 
 ## Contributing
 Statemangement is a mess right now, so any help is appreciated!

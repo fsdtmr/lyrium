@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lyrium/api.dart';
 import 'package:lyrium/datahelper.dart';
@@ -23,6 +23,10 @@ class MusicController extends ChangeNotifier {
 
   bool isReady = false;
 
+  bool showTrack = false;
+
+  late GlobalKey rebuildKey;
+
   MusicController() {
     _init();
   }
@@ -37,10 +41,8 @@ class MusicController extends ChangeNotifier {
   void _startPolling() {
     _polling = Timer.periodic(const Duration(seconds: 5), (t) async {
       try {
-        if (!isPlaying) {
-          final data = await MusicNotificationService.getNowPlaying();
-          _setData(data);
-        }
+        final data = await MusicNotificationService.getNowPlaying();
+        _setData(data);
       } catch (e) {
         debugPrint('Polling error: $e');
         t.cancel();
@@ -58,6 +60,17 @@ class MusicController extends ChangeNotifier {
         _notificationSubscription = MusicNotificationService.notifications
             .listen(_setData);
         final data = await MusicNotificationService.getNowPlaying();
+
+        if (data != null) {
+          try {
+            final playing = data["isPlaying"] as bool? ?? false;
+            if (playing) {
+              showTrack = true;
+            }
+          } catch (e) {
+            debugPrint(e.toString());
+          }
+        }
 
         _setData(data);
       }
@@ -106,11 +119,7 @@ class MusicController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // -------------------------
-  // 🎵 Public methods for UI
-  // -------------------------
 
-  /// Fetch lyrics online + save locally
   Future<void> fetchAndSaveLyrics() async {
     if (info == null) return;
 
@@ -121,13 +130,11 @@ class MusicController extends ChangeNotifier {
     setLyrics(lyricsData.first);
   }
 
-  /// Save manually chosen track
   Future<void> saveLyrics(LyricsTrack track) async {
     await DataHelper.instance.saveTrack(track, info);
     setLyrics(track);
   }
 
-  /// Manually set lyrics in state
   void setLyrics(LyricsTrack? track) {
     lyrics = track;
     notifyListeners();
@@ -162,9 +169,7 @@ class MusicController extends ChangeNotifier {
     await _checkAccessAndStream();
   }
 
-  // -------------------------
-  // Helpers
-  // -------------------------
+
   double get progressValue => duration != null && duration!.inMilliseconds > 0
       ? (progress?.inMilliseconds ?? 0) / (duration!.inMilliseconds)
       : 0.0;
@@ -181,5 +186,15 @@ class MusicController extends ChangeNotifier {
     _polling?.cancel();
     _notificationSubscription?.cancel();
     super.dispose();
+  }
+
+  void setShowTrackMode(bool mode) {
+    showTrack = mode;
+    notifyListeners();
+  }
+
+  void setInfo(TrackInfo? newinfo) {
+    info = newinfo;
+    notifyListeners();
   }
 }

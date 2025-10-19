@@ -1,102 +1,125 @@
 import 'package:flutter/material.dart';
 import 'package:lyrium/controller.dart';
+import 'package:lyrium/search.dart';
 import 'package:lyrium/service/service.dart';
-import 'package:lyrium/widgets/lyrics_sheet.dart';
 import 'package:provider/provider.dart';
 import 'package:lyrium/viewer.dart';
-import 'package:lyrium/search.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  @override
   Widget build(BuildContext context) {
-    final ctrl = context.watch<MusicController>();
-
-    return Scaffold(
-      appBar: ctrl.lyrics == null
-          ? ctrl.hasAccess
-                ? null
-                : AppBar(
-                    title: GestureDetector(
-                      onTap: () => _openSearchDialog(context),
-                      child: Text("Search lyrics"),
-                    ),
-                  )
-          : AppBar(
-              title: GestureDetector(
-                onTap: () => _openSearchDialog(context),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      ctrl.info?.trackName ?? "",
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      ctrl.info?.artistName ?? "",
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(5),
-                child: LinearProgressIndicator(value: ctrl.progressValue),
-              ),
+    return Consumer<MusicController>(
+      builder: (BuildContext context, MusicController ctrl, Widget? child) {
+        return AnimatedCrossFade(
+          firstChild: Padding(
+            padding: EdgeInsetsGeometry.all(9.0),
+            child: Center(
+              child: SizedBox(width: 300, child: LinearProgressIndicator()),
             ),
-      body: AnimatedOpacity(
-        opacity: 1,
-        duration: Durations.medium4,
-        child: Center(
-          child: Builder(
-            builder: (c) {
-              if (!ctrl.isReady || ctrl.hasAccess) {
-                return AnimatedCrossFade(
-                  crossFadeState: ctrl.isReady
-                      ? CrossFadeState.showSecond
-                      : CrossFadeState.showFirst,
-                  duration: Durations.long1,
-                  firstChild: LinearProgressIndicator(),
+          ),
+          secondChild: Builder(
+            builder: (context) {
+              if (ctrl.showTrack) {
+                return Scaffold(
+                  appBar: AppBar(
+                    title: ctrl.info == null && ctrl.lyrics == null
+                        ? DefaultHeader(mode: false)
+                        : GestureDetector(
+                            onTap: () {
+                              ctrl.setShowTrackMode(false);
+                            },
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  ctrl.info?.trackName ??
+                                      ctrl.lyrics?.trackName ??
+                                      "Track",
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  ctrl.info?.artistName ??
+                                      ctrl.lyrics?.trackName ??
+                                      "Artist",
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
+                    bottom: PreferredSize(
+                      preferredSize: const Size.fromHeight(5),
+                      child: LinearProgressIndicator(
+                        value: ctrl.progressValue,
+                        backgroundColor: ctrl.lyrics != null
+                            ? null
+                            : Colors.transparent,
+                      ),
+                    ),
+                  ),
+                  body: Builder(
+                    builder: (context) {
+                      if (ctrl.lyrics == null) {
+                        return Center(
+                          child: Builder(
+                            builder: (context) {
+                              if (ctrl.hasAccess) {
+                                if (ctrl.info != null) {
+                                  return _buildFetcher(context, ctrl);
+                                } else {
+                                  return _buildNoMusic();
+                                }
+                              } else {
+                                return _buildAccessRequired(context, ctrl);
+                              }
+                            },
+                          ),
+                        );
+                      }
 
-                  secondChild: AnimatedCrossFade(
-                    firstChild: ctrl.info == null
-                        ? _buildNoMusic()
-                        : _buildFetcher(context, ctrl),
-                    secondChild: _buildViewer(context, ctrl),
-                    crossFadeState: ctrl.lyrics == null
-                        ? CrossFadeState.showFirst
-                        : CrossFadeState.showSecond,
-                    duration: Durations.long1,
+                      final track = ctrl.lyrics;
+                      final isPlaying = ctrl.isPlaying;
+                      final atPosition = ctrl.progress;
+                      return LyricsView(
+                        lyrics: track,
+                        isPlaying: isPlaying,
+                        atPosition: atPosition,
+                        getPrimaryPosition: ctrl.position,
+                        togglePause: (b) => ctrl.togglePause(pause: b),
+                        seek: ctrl.seekTo,
+                        onSave: ctrl.saveLyrics,
+                      );
+                      ;
+                    },
                   ),
                 );
               } else {
-                return _buildAccessRequired(context, ctrl);
+                return Scaffold(
+                  body: QuickSearch(
+                    emptyResults: (c) => buildUserSuggesions(c, ctrl),
+                  ),
+                );
               }
             },
           ),
-        ),
-      ),
+          crossFadeState: ctrl.isReady
+              ? CrossFadeState.showSecond
+              : CrossFadeState.showFirst,
+          duration: Durations.long1,
+        );
+      },
     );
   }
 
-  Widget _buildNoMusic() => const Column(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      Icon(Icons.music_note, size: 80, color: Colors.deepPurple),
-      SizedBox(height: 16),
-      Text(
-        'No Music Playing',
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-      ),
-      SizedBox(height: 8),
-      Text('Start playing a song to see info here.'),
-    ],
-  );
-
   Widget _buildFetcher(BuildContext context, MusicController ctrl) {
     return GestureDetector(
-      onDoubleTap: () => _openSearchDialog(context),
+      onDoubleTap: () => ctrl.setShowTrackMode(false),
       onLongPress: () async {
         try {
           await ctrl.fetchAndSaveLyrics();
@@ -142,9 +165,36 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildViewer(BuildContext context, MusicController ctrl) {
-    return LyricPlayerContainer();
+  buildUserSuggesions(BuildContext context, MusicController controller) {
+    if (controller.isReady) {
+      if (controller.hasAccess) {
+        if (controller.info == null) {
+          return _buildNoMusic();
+        }
+        if (controller.lyrics == null) {
+          return _buildNoResults();
+        }
+      } else {
+        return _buildAccessRequired(context, controller);
+      }
+    }
+
+    return SizedBox.shrink();
   }
+
+  Widget _buildNoMusic() => const Column(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Icon(Icons.select_all, size: 80, color: Colors.deepPurple),
+      SizedBox(height: 16),
+      Text(
+        'No Music Playing',
+        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      ),
+      SizedBox(height: 8),
+      Text('Start playing a song to see info here.'),
+    ],
+  );
 
   Widget _buildAccessRequired(BuildContext context, MusicController? ctrl) {
     if (ctrl == null) {
@@ -155,7 +205,7 @@ class HomePage extends StatelessWidget {
       children: [
         const Icon(Icons.notifications_off, size: 80, color: Colors.grey),
         const SizedBox(height: 16),
-        const Text("Notification Access Required"),
+        const Text("Enable Notification Access?"),
         ElevatedButton(
           onPressed: ctrl.openNotificationAccessSettings,
           child: const Text("Grant Access"),
@@ -164,51 +214,16 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Future<void> _openSearchDialog(BuildContext context) async {
-    final ctrl = context.read<MusicController>();
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          body: SearchSelector(
-            initailQuery: ctrl.info,
-            onResultSelected: (result, mode) async {
-              if (!ctrl.hasAccess) {
-                showLyricsSheet(context, result);
-
-                return;
-              }
-              final confirmed = !mode
-                  ? false
-                  : await showDialog<bool>(
-                      context: context,
-                      builder: (context) {
-                        return AlertDialog(
-                          title: const Text("Are you sure?"),
-                          content: const Text("Do you want to overwrite?"),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(false),
-                              child: const Text("Cancel"),
-                            ),
-                            ElevatedButton(
-                              onPressed: () => Navigator.of(context).pop(true),
-                              child: const Text("Yes"),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-
-              if (confirmed == true) {
-                await ctrl.saveLyrics(result);
-              } else {
-                ctrl.setLyrics(result);
-              }
-              Navigator.of(context).pop();
-            },
-          ),
-        ),
+  Widget _buildNoResults() => const Column(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Icon(Icons.search_off, size: 80, color: Colors.grey),
+      SizedBox(height: 16),
+      Text(
+        'Not Found',
+        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
       ),
-    );
-  }
+      SizedBox(height: 8),
+    ],
+  );
 }

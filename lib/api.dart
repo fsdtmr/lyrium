@@ -16,7 +16,7 @@ class ApiHandler {
     ).replace(queryParameters: queryParameters);
     final response = await http.get(
       uri,
-      headers: {'User-Agent': 'test/1.0 (test)'},
+      headers: {'User-Agent': 'lyrium/1.*.* (beta)'},
     );
     switch (response.statusCode) {
       case 404:

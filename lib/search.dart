@@ -1,32 +1,40 @@
-import 'package:flutter/material.dart';
 import 'package:lyrium/api.dart';
-import 'package:lyrium/datahelper.dart'; // Make sure this import is correct for your DataHelper
+import 'package:lyrium/controller.dart';
 import 'package:lyrium/models.dart';
+import 'package:flutter/material.dart';
+import 'package:lyrium/datahelper.dart';
 import 'package:lyrium/utils/duration.dart';
+import 'package:lyrium/widgets/lyrics_sheet.dart';
+import 'package:provider/provider.dart';
 
-enum SearchSource { global, local }
+enum SearchSource { global, local, now, recent }
 
 var lastresults = <LyricsTrack>[];
 var lastquery = "";
 
-class SearchSelector extends StatefulWidget {
-  final Function(LyricsTrack, bool)?  onResultSelected;
+class QuickSearch extends StatefulWidget {
+  final Function(LyricsTrack, bool)? onResultSelected;
   final TrackInfo? initailQuery;
 
-  const SearchSelector({super.key, this.onResultSelected, this.initailQuery});
+  final Function(BuildContext) emptyResults;
+
+  const QuickSearch({
+    super.key,
+    this.onResultSelected,
+    this.initailQuery,
+    required this.emptyResults,
+  });
 
   @override
-  State<SearchSelector> createState() => _SearchSelectorState();
+  State<QuickSearch> createState() => _QuickSearchState();
 }
 
-class _SearchSelectorState extends State<SearchSelector> {
+class _QuickSearchState extends State<QuickSearch> {
   final TextEditingController _controller = TextEditingController();
   List<LyricsTrack> _results = [];
   bool _loading = false;
   String? _error;
   SearchSource _mode = SearchSource.local;
-  
-  bool _expand_results =false;
 
   Future<void> _search() async {
     final query = _controller.text.trim();
@@ -41,7 +49,7 @@ class _SearchSelectorState extends State<SearchSelector> {
         final api = ApiHandler();
         lastresults = await api.searchTracks(query);
         lastquery = query;
-        setState( () {
+        setState(() {
           _results = lastresults;
         });
       } else {
@@ -69,7 +77,9 @@ class _SearchSelectorState extends State<SearchSelector> {
 
   @override
   void initState() {
-    _controller.text = widget.initailQuery != null ? "${widget.initailQuery?.trackName}" : lastquery;
+    _controller.text = widget.initailQuery != null
+        ? "${widget.initailQuery?.trackName}"
+        : lastquery;
     _results = lastresults;
     _search();
     super.initState();
@@ -85,127 +95,124 @@ class _SearchSelectorState extends State<SearchSelector> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog.fullscreen(
-      child: Column(
-        children: [
-          AppBar(
-            leading: BackButton(),
-            automaticallyImplyLeading: false,
-            title: TextField(
-              autofocus: true,
-              controller: _controller,
-              decoration: InputDecoration(
-                contentPadding: EdgeInsets.symmetric(vertical: 15),
-
-                border: InputBorder.none,
-                isDense: false,
-
-                suffixIcon: _controller.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: _clearInput,
-                      )
-                    // suffixIcon:
-                    //     ?
-                    //     : null,
-                    : null,
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            DefaultHeader(mode: true),
+            Card(
+              margin: const EdgeInsets.symmetric(horizontal: 20),
+              elevation: 3,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
               ),
-              onChanged: (_) => repriotirize(),
-              onSubmitted: (_) => _search(),
-            ),
-
-            // elevation: 1,
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Row(
-                    // mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ChoiceChip(
-                        label: const Text('LRCLIB'),
-                        selected: _mode == SearchSource.global,
-                        onSelected: (selected) {
-                          if (selected) {
-                            setState(() {
-                              _mode = SearchSource.global;
-                              _results = [];
-                              _error = null;
-                            });
-                          }
-                        },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search, color: Colors.indigo, size: 26),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: _controller,
+                        textInputAction: TextInputAction.search,
+                        onChanged: (_) => repriotirize(),
+                        onSubmitted: (_) => _search(),
+                        decoration: InputDecoration(
+                          hintText: 'Search...', //, artists, or lyrics',
+                          border: InputBorder.none,
+                          isDense: true,
+                        ),
                       ),
-                      const SizedBox(width: 8),
-                      ChoiceChip(
-                        label: const Text('Saved'),
-                        selected: _mode == SearchSource.local,
-                        onSelected: (selected) {
-                          if (selected) {
-                            setState(() {
-                              _mode = SearchSource.local;
-                              _results = [];
-                              _error = null;
-                            });
-                          }
-                        },
+                    ),
+                    Opacity(
+                      opacity: _controller.text.isEmpty ? 0 : 1,
+                      child: IconButton(
+                        onPressed: _controller.clear,
+                        icon: const Icon(Icons.close, size: 20),
+                        tooltip: 'Clear',
                       ),
-
-                      const SizedBox(width: 8),
-                      ChoiceChip(label: const Text('Expand'), selected: _expand_results, onSelected: (value) => setState(() {
-                        _expand_results = value;
-                      }),)
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 6),
+                    Opacity(
+                      opacity: _controller.text.isEmpty ? 0 : 1,
+                      child: ElevatedButton(
+                        onPressed: _loading ? null : () => _search(),
+                        child: SizedBox(
+                          width: 50,
+                          child: Center(
+                            child: _loading
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text('Search'),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-
-                Expanded(
-                  child: Builder(
-                    builder: (context) {
-                      return _loading
-                          ? const Center(child: CircularProgressIndicator())
-                          : _error != null
-                          ? Center(
-                              child: Text(
-                                _error!,
-                                style: const TextStyle(color: Colors.red),
-                              ),
-                            )
-                          : _results.isEmpty && _controller.text.isNotEmpty
-                          ? const Center(child: Text('No results found.'))
-                          : ListView.separated(
-                              itemCount: _results.length,
-                              separatorBuilder: (_, __) => const Divider(),
-                              itemBuilder: (context, index) {
-                                final track = _results[index];
-
-                                return GestureDetector(
-                                  onLongPress: () =>
-                                      showfileoptions(context, track),
-                                  child: ListTile(
-                                    title: Text(track.trackName),
-                                    subtitle: Text(
-                                      '  ${track.albumName ?? ""} - ${track.artistName ?? "Unknown Artist"} + ${!_expand_results ? "" : track.plainLyrics}',
-                                    ),
-                                    trailing: Text(
-                                      track.duration.toShortString()
-                                    ),
-                                    onTap: () {
-                                      widget.onResultSelected?.call(track , SearchSource.global == _mode);
-                                    },
-                                  ),
-                                );
-                              },
-                            );
+              ),
+            ),
+        
+            Padding(
+              padding: EdgeInsetsGeometry.all(8.0),
+              child: Wrap(
+                spacing: 8.0,
+                children: [
+                  ChoiceChip(
+                    label: const Text('LRCLIB'),
+                    selected: _mode == SearchSource.global,
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() {
+                          _mode = SearchSource.global;
+                          _results = lastresults;
+                          _error = null;
+                        });
+                      }
                     },
                   ),
-                ),
-              ],
+        
+                  ChoiceChip(
+                    label: const Text('Saved'),
+                    selected: _mode == SearchSource.local,
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() {
+                          _mode = SearchSource.local;
+                          _results = [];
+                          _error = null;
+                        });
+                        _search();
+                      }
+                    },
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: SelectableText(
+                  _error!,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelSmall?.copyWith(color: Colors.redAccent),
+                ),
+              ),
+            Expanded(
+              child: _results.isEmpty
+                  ? widget.emptyResults(context)
+                  : ResultsListView(songs: _results, query: _controller.text),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -216,14 +223,11 @@ class _SearchSelectorState extends State<SearchSelector> {
       builder: (c) {
         return ListView(
           children: [
-
             Text("Track ID: ${track.id}"),
             Text("Track Name: ${track.trackName}"),
             Text("Artist Name: ${track.artistName ?? "Unknown Artist"}"),
             Text("Album Name: ${track.albumName ?? "Unknown Album"}"),
-            Text(
-              "Duration: ${track.duration.toShortString()}",
-            ),
+            Text("Duration: ${track.duration.toShortString()}"),
             Text("Instrumental: ${track.instrumental == true ? "Yes" : "No"}"),
             Text("Plain Lyrics: ${track.plainLyrics ?? "No Lyrics"}"),
             Text("Synced Lyrics: ${track.syncedLyrics ?? "No Synced Lyrics"}"),
@@ -235,13 +239,14 @@ class _SearchSelectorState extends State<SearchSelector> {
               icon: Icon(Icons.delete, color: Colors.red),
             ),
 
-            TextButton(onPressed: (){
-              DataHelper.instance.delete(track);
+            TextButton(
+              onPressed: () {
+                DataHelper.instance.delete(track);
 
-              Navigator.of(context).pop();
-            }, child: Text("Delete"))
-
-            
+                Navigator.of(context).pop();
+              },
+              child: Text("Delete"),
+            ),
           ],
         );
       },
@@ -275,5 +280,153 @@ class _SearchSelectorState extends State<SearchSelector> {
     //       : 0,
     // );
     setState(() {});
+  }
+}
+
+class DefaultHeader extends StatelessWidget {
+  final bool mode;
+  const DefaultHeader({super.key, required this.mode});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Provider.of<MusicController>(
+          context,
+          listen: false,
+        ).setShowTrackMode(mode);
+      },
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: GestureDetector(
+          onTap: () => Provider.of<MusicController>(
+            context,
+            listen: false,
+          ).setShowTrackMode(mode),
+          child: Center(
+            child: Text(
+              "Lyrium",
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class ResultsListView extends StatelessWidget {
+  final List<LyricsTrack> songs;
+  final String query;
+
+  const ResultsListView({super.key, required this.songs, required this.query});
+
+  Widget _highlight(String text, String query, {TextStyle? style}) {
+    if (query.isEmpty) return Text(text, style: style);
+    final lower = text.toLowerCase();
+    final q = query.toLowerCase();
+    final spans = <TextSpan>[];
+    int start = 0;
+    int index;
+    while ((index = lower.indexOf(q, start)) != -1) {
+      if (index > start) {
+        spans.add(TextSpan(text: text.substring(start, index), style: style));
+      }
+      spans.add(
+        TextSpan(
+          text: text.substring(index, index + q.length),
+          style: style?.copyWith(
+            backgroundColor: const Color.fromARGB(255, 243, 255, 135),
+            fontWeight: FontWeight.w600,
+            color: const Color.fromARGB(255, 29, 29, 11),
+          ),
+        ),
+      );
+      start = index + q.length;
+    }
+    if (start < text.length) {
+      spans.add(TextSpan(text: text.substring(start), style: style));
+    }
+    return RichText(
+      text: TextSpan(children: spans, style: style),
+    );
+  }
+
+  String _initials(String title, String artist) {
+    final t = title.trim();
+    if (t.isEmpty) {
+      return artist
+          .split(' ')
+          .map((s) => s.isNotEmpty ? s[0] : '')
+          .take(2)
+          .join()
+          .toUpperCase();
+    }
+    final parts = t.split(' ');
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      itemCount: songs.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 0),
+      itemBuilder: (context, index) {
+        final LyricsTrack item = songs[index];
+        final title = item.trackName;
+        final artist = item.artistName ?? "";
+
+        return ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 10,
+          ),
+          // leading: CircleAvatar(
+          //   radius: 26,
+          //   backgroundColor: Colors.indigo.shade50,
+          //   child: Text(
+          //     _initials(title, artist),
+          //     style: const TextStyle(fontWeight: FontWeight.bold),
+          //   ),
+          // ),
+          title: _highlight(
+            title,
+            query,
+            style: Theme.of(context)
+                .textTheme
+                .labelLarge, //TODO: Theme.of(context).listTileTheme.subtitleTextStyle does not work,
+          ),
+          subtitle: _highlight(
+            artist,
+            query,
+            style: Theme.of(context).textTheme.labelSmall,
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children:
+                [] // item.labels
+                    .map(
+                      (s) => Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Chip(
+                          label: Text(s),
+                          labelStyle: TextStyle(
+                            fontSize: 12,
+                            color: Colors.indigo.shade700,
+                          ),
+                          backgroundColor: Colors.indigo.shade50,
+                          padding: EdgeInsets.zero,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                    )
+                    .toList(),
+          ),
+          onTap: () => showLyricsSheet(context, item),
+        );
+      },
+    );
   }
 }
