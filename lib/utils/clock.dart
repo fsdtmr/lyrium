@@ -16,9 +16,9 @@ class ClockManager {
     onUpdate?.call(elapsed);
   }
 
-  void play({Duration? startfrom, }) {
+  void play({Duration? startfrom}) {
     _timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
-       onUpdate?.call(elapsed);
+      onUpdate?.call(elapsed);
     });
 
     _startTime = DateTime.now().subtract(startfrom ?? _lastElapsed);

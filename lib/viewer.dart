@@ -1,41 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:lyrium/controller.dart';
 import 'package:lyrium/editor.dart';
 import 'package:lyrium/utils/clock.dart';
 import 'package:lyrium/models.dart';
 import 'package:lyrium/utils/duration.dart';
 import 'package:lyrium/utils/lrc.dart';
-import 'package:provider/provider.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
-
-class LyricPlayerContainer extends StatelessWidget {
-  const LyricPlayerContainer({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<MusicController>(
-      builder: (context, controller, _) {
-        final track = controller.lyrics;
-        final isPlaying = controller.isPlaying;
-        final atPosition = controller.progress;
-
-        if (track == null) {
-          return const Center(child: Text("No track selected"));
-        }
-
-        return LyricsView(
-          lyrics: track,
-          isPlaying: isPlaying,
-          atPosition: atPosition,
-          getPrimaryPosition: controller.position,
-          togglePause: (b) => controller.togglePause(pause: b),
-          seek: controller.seekTo,
-          onSave: (LyricsTrack lyrics) async {},
-        );
-      },
-    );
-  }
-}
 
 class LyricsView extends StatefulWidget {
   final LyricsTrack? lyrics;
@@ -71,7 +40,7 @@ class _LyricsViewState extends State<LyricsView> {
   int lyindex = -1;
   late ClockManager watchManager;
   @override
-  void initState()  {
+  void initState() {
     duration = widget.lyrics?.duration?.toDuration() ?? Duration.zero;
 
     lyrics = toLRCLineList(widget.lyrics?.syncedLyrics ?? "");

@@ -25,7 +25,7 @@ class NotificationConnection {
   }
 
   static Future<bool> seekTo(Duration position) async {
-    throw UnimplementedError();
+    return false;
   }
 
   static Future<Duration> getPosition() async {
