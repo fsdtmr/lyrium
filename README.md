@@ -1,7 +1,7 @@
 # Lyrium
 
 
-Opensource lyrics viewer for android. 
+Opensource lyrics viewer for web & android.  
 
 [![Build Status](https://github.com/fsdtmr/lyrium/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/fsdtmr/lyrium/actions/workflows/ci-cd.yml)
 

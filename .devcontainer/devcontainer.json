@@ -2,7 +2,9 @@
   "build": {
     "dockerfile": "Dockerfile"
   },
-  "forwardPorts": [3000],
+  "forwardPorts": [
+    3000
+  ],
   "name": "Flutter",
   "customizations": {
     "vscode": {
@@ -11,5 +13,8 @@
         "Dart-Code.flutter"
       ]
     }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/git-lfs:1": {}
   }
 }
