@@ -9,8 +9,8 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
-    private val EVENT_CHANNEL = "music_notifications"
-    private val METHOD_CHANNEL = "music_notifications/methods"
+    private val EVENT_CHANNEL = "com.example.lyrium"
+    private val METHOD_CHANNEL = "com.example.lyrium/methods"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

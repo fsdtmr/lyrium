@@ -15,8 +15,8 @@ Future<QueryExecutor> openPlatformConnection(String name) async {
 
 
 class NotificationConnection {
-  static const _eventChannel = EventChannel("music_notifications");
-  static const _methodChannel = MethodChannel("music_notifications/methods");
+  static const _eventChannel = EventChannel("com.example.lyrium");
+  static const _methodChannel = MethodChannel("com.example.lyrium/methods");
 
   static Stream<Map?> get notifications async* {
     yield* _eventChannel.receiveBroadcastStream().map((event) => event as Map?);
