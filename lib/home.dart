@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lyrium/controller.dart';
 import 'package:lyrium/search.dart';
-import 'package:lyrium/service/service.dart';
 import 'package:provider/provider.dart';
 import 'package:lyrium/viewer.dart';
 
@@ -17,103 +16,115 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Consumer<MusicController>(
       builder: (BuildContext context, MusicController ctrl, Widget? child) {
-        return AnimatedCrossFade(
-          firstChild: Padding(
-            padding: EdgeInsetsGeometry.all(9.0),
-            child: Center(
-              child: SizedBox(width: 300, child: LinearProgressIndicator()),
-            ),
-          ),
-          secondChild: Builder(
-            builder: (context) {
-              if (ctrl.showTrack) {
-                return Scaffold(
-                  appBar: AppBar(
-                    title: ctrl.info == null && ctrl.lyrics == null
-                        ? DefaultHeader(mode: false)
-                        : GestureDetector(
-                            onTap: () {
-                              ctrl.setShowTrackMode(false);
-                            },
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  ctrl.info?.trackName ??
-                                      ctrl.lyrics?.trackName ??
-                                      "Track",
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                Text(
-                                  ctrl.info?.artistName ??
-                                      ctrl.lyrics?.trackName ??
-                                      "Artist",
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                              ],
-                            ),
-                          ),
-                    bottom: PreferredSize(
-                      preferredSize: const Size.fromHeight(5),
-                      child: LinearProgressIndicator(
-                        value: ctrl.progressValue,
-                        backgroundColor: ctrl.lyrics != null
-                            ? null
-                            : Colors.transparent,
-                      ),
-                    ),
-                  ),
-                  body: Builder(
-                    builder: (context) {
-                      if (ctrl.lyrics == null) {
-                        return Center(
-                          child: Builder(
-                            builder: (context) {
-                              if (ctrl.hasAccess) {
-                                if (ctrl.info != null) {
-                                  return _buildFetcher(context, ctrl);
-                                } else {
-                                  return _buildNoMusic();
-                                }
-                              } else {
-                                return _buildAccessRequired(context, ctrl);
-                              }
-                            },
-                          ),
-                        );
-                      }
+        // return AnimatedCrossFade(
 
-                      final track = ctrl.lyrics;
-                      final isPlaying = ctrl.isPlaying;
-                      final atPosition = ctrl.progress;
-                      return LyricsView(
-                        lyrics: track,
-                        isPlaying: isPlaying,
-                        atPosition: atPosition,
-                        getPrimaryPosition: ctrl.position,
-                        togglePause: (b) => ctrl.togglePause(pause: b),
-                        seek: ctrl.seekTo,
-                        onSave: ctrl.saveLyrics,
-                      );
-                      ;
-                    },
-                  ),
-                );
-              } else {
-                return Scaffold(
-                  body: QuickSearch(
-                    emptyResults: (c) => buildUserSuggesions(c, ctrl),
-                  ),
-                );
-              }
-            },
+        // );
+        return AnimatedCrossFade(
+          firstChild: Center(
+            child: SizedBox(width: 50, child: LinearProgressIndicator()),
           ),
+          secondChild: buildpage(ctrl),
           crossFadeState: ctrl.isReady
               ? CrossFadeState.showSecond
               : CrossFadeState.showFirst,
           duration: Durations.long1,
         );
       },
+    );
+  }
+
+  Builder buildpage(MusicController ctrl) {
+    return Builder(
+      builder: (context) {
+        if (ctrl.showTrack) {
+          return Scaffold(
+            appBar: AppBar(
+              title: ctrl.info == null && ctrl.lyrics == null
+                  ? DefaultHeader(mode: false)
+                  : GestureDetector(
+                      onTap: () {
+                        ctrl.setShowTrackMode(false);
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            ctrl.info?.trackName ??
+                                ctrl.lyrics?.trackName ??
+                                "Track",
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            ctrl.info?.artistName ??
+                                ctrl.lyrics?.trackName ??
+                                "Artist",
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+              bottom: buildnotificationpr(ctrl),
+            ),
+            body: buildcontent(ctrl),
+          );
+        } else {
+          return Scaffold(
+            body: QuickSearch(
+              emptyResults: (c) => buildUserSuggesions(c, ctrl),
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  Builder buildcontent(MusicController ctrl) {
+    return Builder(
+      builder: (context) {
+        if (ctrl.lyrics == null) {
+          return Center(
+            child: Builder(
+              builder: (context) {
+                if (ctrl.hasAccess) {
+                  if (ctrl.info != null) {
+                    return _buildFetcher(context, ctrl);
+                  } else {
+                    return _buildNoMusic();
+                  }
+                } else {
+                  return _buildAccessRequired(context, ctrl);
+                }
+              },
+            ),
+          );
+        }
+
+        final track = ctrl.lyrics;
+        final isPlaying = ctrl.isPlaying;
+        final atPosition = ctrl.progress;
+
+        // return Text("data");
+        return LyricsView(
+          lyrics: track,
+          isPlaying: isPlaying,
+          atPosition: atPosition,
+          getPrimaryPosition: ctrl.position,
+          togglePause: (b) => ctrl.togglePause(pause: b),
+          seek: ctrl.seekTo,
+          onSave: ctrl.saveLyrics,
+        );
+        ;
+      },
+    );
+  }
+
+  PreferredSize buildnotificationpr(MusicController ctrl) {
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(5),
+      child: LinearProgressIndicator(
+        value: ctrl.progressValue,
+        backgroundColor: ctrl.lyrics != null ? null : Colors.transparent,
+      ),
     );
   }
 
@@ -137,11 +148,25 @@ class _HomePageState extends State<HomePage> {
             // const Text("🔍", textScaler: TextScaler.linear(5)),
             // Slider(value: ctrl.progressValue, onChanged: ctrl.seek),
             FutureBuilder(
-              future: MusicNotificationService.getImage(),
+              future: ctrl.image,
               builder: (c, s) {
                 return AspectRatio(
                   aspectRatio: 1,
-                  child: s.data ?? SizedBox.shrink(),
+                  child:
+                      s.data ??
+                      Center(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            color: Theme.of(context).secondaryHeaderColor,
+                          ),
+                          child: Icon(
+                            Icons.music_note,
+                            size: 300,
+                            color: Theme.of(context).scaffoldBackgroundColor,
+                          ),
+                        ),
+                      ),
                 );
               },
             ),

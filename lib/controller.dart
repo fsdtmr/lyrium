@@ -109,11 +109,15 @@ class MusicController extends ChangeNotifier {
 
     notifyListeners();
   }
+  
+  Future<Image?>? image;
 
   Future<void> _onTrackChanged() async {
     if (info == null) {
+      image = null;
       lyrics = null;
     } else {
+      image = MusicNotificationService.getImage();
       lyrics = await DataHelper.instance.getTrack(info!);
     }
     notifyListeners();

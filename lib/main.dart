@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData.dark(useMaterial3: true),
       darkTheme: ThemeData.dark(useMaterial3: true),
       title: 'lyrium',
-      home: const HomePage(),
+      home: Scaffold(body: const HomePage()),
     );
   }
 }
