@@ -1,4 +1,5 @@
 import 'package:lyrium/storage/local.dart';
+import 'package:lyrium/utils/string.dart';
 
 class TrackInfo {
   final String artistName;
@@ -13,27 +14,32 @@ class TrackInfo {
     required this.durationseconds,
   });
 
-  static List<String> advertisement = ["Advertisement"];
-  static List<String> clearArtists = ["Recommended for you", "•"];
-  TrackInfo? clearTemplates() {
+  static List<String> advertisement = ["Advertisement", "Sponsored"];
+  static List<String> clearArtists = [
+    "•",
+    "Recommended for you",
+    "Unknown Artist",
+  ];
+
+  static List<String> replacewithSpace = ["/"];
+  TrackInfo clearTemplates() {
+    const clearTrackNames = ["Advertisement"];
+    const clearArtists = ["Recommended for you"];
+
     String clearedTrack = trackName;
     String clearedArtist = artistName;
     String clearedAlbum = albumName;
 
-    for (var e in advertisement) {
-      clearedTrack = clearedTrack.replaceFirst(e, "").trim();
+    for (var e in clearTrackNames) {
+      clearedTrack = replaceFirstCaseInsensitive(clearedTrack, e).trim();
     }
 
     for (var e in clearArtists) {
-      clearedArtist = clearedArtist.replaceFirst(e, "").trim();
+      clearedArtist = replaceFirstCaseInsensitive(clearedArtist, e).trim();
     }
 
-    if (advertisement.any((e) => clearedArtist.contains(e))) {
-      return null;
-    }
-
-    if (trackName == "") {
-      return null;
+    for (var e in replacewithSpace) {
+      clearedArtist = replaceFirstCaseInsensitive(clearedArtist, e, " ").trim();
     }
 
     return TrackInfo(
@@ -121,6 +127,15 @@ class LyricsTrack {
       instrumental: lyric.instrumental ?? false,
       plainLyrics: lyric.lyrics,
       syncedLyrics: lyric.lyrics,
+    );
+  }
+
+  TrackInfo toInfo() {
+    return TrackInfo(
+      trackName: trackName,
+      artistName: artistName ?? "Not Set",
+      albumName: albumName ?? "Not Set",
+      durationseconds: duration ?? 0,
     );
   }
 }

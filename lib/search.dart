@@ -126,8 +126,8 @@ class _QuickSearchState extends State<QuickSearch> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.search, color: Colors.indigo, size: 26),
-                    const SizedBox(width: 12),
+                    // const Icon(Icons.search, color: Colors.indigo, size: 26),
+                    // const SizedBox(width: 12),
                     Expanded(
                       child: TextField(
                         controller: _controller,
@@ -141,36 +141,36 @@ class _QuickSearchState extends State<QuickSearch> {
                         ),
                       ),
                     ),
-                    Opacity(
-                      opacity: _controller.text.isEmpty ? 0 : 1,
-                      child: IconButton(
-                        onPressed: _controller.clear,
-                        icon: const Icon(Icons.close, size: 20),
-                        tooltip: 'Clear',
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Opacity(
-                      opacity: _controller.text.isEmpty ? 0 : 1,
-                      child: ElevatedButton(
-                        onPressed: _loading ? null : () => _search(),
-                        child: SizedBox(
-                          width: 50,
-                          child: Center(
-                            child: _loading
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Text('Search'),
-                          ),
-                        ),
-                      ),
-                    ),
+                    // Opacity(
+                    //   opacity: _controller.text.isEmpty ? 0 : 1,
+                    //   child: IconButton(
+                    //     onPressed: _controller.clear,
+                    //     icon: const Icon(Icons.close, size: 20),
+                    //     tooltip: 'Clear',
+                    //   ),
+                    // ),
+                    // const SizedBox(width: 6),
+                    // Opacity(
+                    //   opacity: _controller.text.isEmpty ? 0 : 1,
+                    //   child: ElevatedButton(
+                    //     onPressed: _loading ? null : () => _search(),
+                    //     child: SizedBox(
+                    //       width: 50,
+                    //       child: Center(
+                    //         child: _loading
+                    //             ? const SizedBox(
+                    //                 width: 16,
+                    //                 height: 16,
+                    //                 child: CircularProgressIndicator(
+                    //                   strokeWidth: 2,
+                    //                   color: Colors.white,
+                    //                 ),
+                    //               )
+                    //             : const Text('Search'),
+                    //       ),
+                    //     ),
+                      // ),
+                    // ),
                   ],
                 ),
               ),

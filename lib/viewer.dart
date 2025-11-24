@@ -171,6 +171,7 @@ class _LyricsViewState extends State<LyricsView> {
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (c) => SimpleLyricEditor(
+                          info: widget.lyrics?.toInfo(),
                           initial:
                               widget.lyrics?.syncedLyrics ??
                               widget.lyrics?.plainLyrics ??

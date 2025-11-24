@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:lyrium/utils/lrc.dart';
+import 'package:lyrium/models.dart';
 
 
 class SimpleLyricEditor extends StatefulWidget {
+
+  final TrackInfo? info;
   final String initial;
-  const SimpleLyricEditor({super.key, required this.initial});
+  const SimpleLyricEditor({super.key, required this.initial, this.info});
 
   @override
   State<SimpleLyricEditor> createState() => _SimpleLyricEditorState();
@@ -23,19 +25,31 @@ class _SimpleLyricEditorState extends State<SimpleLyricEditor> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        title: Text(widget.info?.trackName ?? "Not set"),
         actions: [IconButton(onPressed: () {}, icon: Icon(Icons.done))],
       ),
 
       body: SafeArea(
         child: Padding(
           padding: EdgeInsetsGeometry.symmetric(horizontal: 20),
-          child: Stack(
-            children: [
-              SelectableRichText(
-                text: toLRCLineList(widget.initial).toSpans() ?? [],
-              ),
-            ],
-          ),
+          child:  SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: 700,
+              child: TextField(
+                minLines: 100,
+                maxLines: 1000,
+                controller: textEditingController,),
+            ),
+          )
+          
+          // Stack(
+          //   children: [
+          //     SelectableRichText(
+          //       text: toLRCLineList(widget.initial).toSpans() ?? [],
+          //     ),
+          //   ],
+          // ),
         ),
       ),
     );

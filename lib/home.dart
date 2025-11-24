@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lyrium/controller.dart';
+import 'package:lyrium/editor.dart';
 import 'package:lyrium/search.dart';
 import 'package:provider/provider.dart';
 import 'package:lyrium/viewer.dart';
@@ -39,38 +40,50 @@ class _HomePageState extends State<HomePage> {
       builder: (context) {
         if (ctrl.showTrack) {
           return Scaffold(
-            appBar: AppBar(
-              
-              title: ctrl.info == null && ctrl.lyrics == null
-                  ? DefaultHeader(mode: false)
-                  : GestureDetector(
-                      onTap: () {
-                        ctrl.setShowTrackMode(false);
-                      },
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                ctrl.info?.trackName ??
-                                    ctrl.lyrics?.trackName ??
-                                    "Track",
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                          Text(
-                            ctrl.info?.artistName ??
-                                ctrl.lyrics?.trackName ??
-                                "Artist",
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                        ],
+            appBar: ctrl.lyrics == null
+                ? AppBar(leading: IconButton(onPressed: ()=>  ctrl.setShowTrackMode(false), icon: RotatedBox(quarterTurns: 1, child: Icon(Icons.chevron_right))),)
+                : AppBar(
+                    leading: FutureBuilder(
+                      future: ctrl.image,
+                      builder: (c, s) => Padding(
+                        padding: EdgeInsetsGeometry.all(8.0),
+                        child: SizedBox(
+                          width: 30,
+                          height: 30,
+                          child: s.data ?? SizedBox(),
+                        ),
                       ),
                     ),
-              bottom: buildnotificationpr(ctrl),
-            ),
+                    title: ctrl.info == null && ctrl.lyrics == null
+                        ? DefaultHeader(mode: false)
+                        : GestureDetector(
+                            onTap: () {
+                              ctrl.setShowTrackMode(false);
+                            },
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      ctrl.info?.trackName ??
+                                          ctrl.lyrics?.trackName ??
+                                          "Track",
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                                Text(
+                                  ctrl.info?.artistName ??
+                                      ctrl.lyrics?.trackName ??
+                                      "Artist",
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
+                    bottom: buildnotificationpr(ctrl),
+                  ),
             body: buildcontent(ctrl),
           );
         } else {
@@ -110,16 +123,19 @@ class _HomePageState extends State<HomePage> {
         final isPlaying = ctrl.isPlaying;
         final atPosition = ctrl.progress;
 
-        return LyricsView(
-          lyrics: track,
-          isPlaying: isPlaying,
-          atPosition: atPosition,
-          getPrimaryPosition: ctrl.position,
-          togglePause: (b) => ctrl.togglePause(pause: b),
-          seek: ctrl.seekTo,
-          onSave: ctrl.saveLyrics,
+        return SizedBox(
+          // width: 500,
+          // height: 500,
+          child: LyricsView(
+            lyrics: track,
+            isPlaying: isPlaying,
+            atPosition: atPosition,
+            getPrimaryPosition: ctrl.position,
+            togglePause: (b) => ctrl.togglePause(pause: b),
+            seek: ctrl.seekTo,
+            onSave: ctrl.saveLyrics,
+          ),
         );
-        ;
       },
     );
   }
@@ -213,7 +229,7 @@ class _HomePageState extends State<HomePage> {
           return _buildNoMusic();
         }
         if (controller.lyrics == null) {
-          return _buildNoResults();
+          return _buildNoResults(controller);
         }
       } else {
         return _buildAccessRequired(context, controller);
@@ -255,16 +271,26 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildNoResults() => const Column(
+  Widget _buildNoResults(MusicController controller) => Column(
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
-      Icon(Icons.search_off, size: 80, color: Colors.grey),
-      SizedBox(height: 16),
-      Text(
+      const Icon(Icons.search_off, size: 80, color: Colors.grey),
+      const SizedBox(height: 16),
+      const Text(
         'Not Found',
         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
       ),
-      SizedBox(height: 8),
+      const SizedBox(height: 8),
+
+      TextButton(
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (c) =>
+                SimpleLyricEditor(initial: "", info: controller.info),
+          ),
+        ),
+        child: const Text("Add New"),
+      ),
     ],
   );
 }
