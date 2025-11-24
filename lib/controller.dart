@@ -41,8 +41,7 @@ class MusicController extends ChangeNotifier {
   void _startPolling() {
     _polling = Timer.periodic(const Duration(seconds: 5), (t) async {
       try {
-        final data = await MusicNotificationService.getNowPlaying();
-        _setData(data);
+        await MusicNotificationService.update();
       } catch (e) {
         debugPrint('Polling error: $e');
         t.cancel();
@@ -59,25 +58,13 @@ class MusicController extends ChangeNotifier {
       if (hasAccess) {
         _notificationSubscription = MusicNotificationService.notifications
             .listen(_setData);
-        final data = await MusicNotificationService.getNowPlaying();
-
-        if (data != null) {
-          try {
-            final playing = data["isPlaying"] as bool? ?? false;
-            if (playing) {
-              showTrack = true;
-            }
-          } catch (e) {
-            debugPrint(e.toString());
-          }
-        }
-
-        _setData(data);
       }
     } on PlatformException catch (e) {
       debugPrint("Access check failed: ${e.message}");
     }
   }
+
+  var IS_PLAYING = 'isPlaying';
 
   void _setData(Map<dynamic, dynamic>? data) async {
     if (data == null) {
@@ -85,7 +72,6 @@ class MusicController extends ChangeNotifier {
       lyrics = null;
       duration = null;
       progress = null;
-      isPlaying = false;
       return;
     } else {
       final prevName = info?.trackName;
@@ -93,7 +79,7 @@ class MusicController extends ChangeNotifier {
       package = data["package"];
       duration = Duration(milliseconds: (data["duration"] as int?) ?? 0);
       progress = Duration(milliseconds: (data["progress"] as int?) ?? 0);
-      isPlaying = data["isPlaying"] as bool? ?? false;
+      isPlaying = data["${IS_PLAYING}"] as bool? ?? false;
 
       info = TrackInfo(
         artistName: data["artist"],
@@ -109,7 +95,7 @@ class MusicController extends ChangeNotifier {
 
     notifyListeners();
   }
-  
+
   Future<Image?>? image;
 
   Future<void> _onTrackChanged() async {
@@ -117,12 +103,17 @@ class MusicController extends ChangeNotifier {
       image = null;
       lyrics = null;
     } else {
-      image = MusicNotificationService.getImage();
+      image = MusicNotificationService.getImage().then((v) async {
+        if (v == null) {
+          await Future.delayed(Durations.extralong3);
+          return MusicNotificationService.getImage();
+        }
+        return v;
+      });
       lyrics = await DataHelper.instance.getTrack(info!);
     }
     notifyListeners();
   }
-
 
   Future<void> fetchAndSaveLyrics() async {
     if (info == null) return;
@@ -172,7 +163,6 @@ class MusicController extends ChangeNotifier {
     await MusicNotificationService.openNotificationAccessSettings();
     await _checkAccessAndStream();
   }
-
 
   double get progressValue => duration != null && duration!.inMilliseconds > 0
       ? (progress?.inMilliseconds ?? 0) / (duration!.inMilliseconds)

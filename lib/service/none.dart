@@ -1,4 +1,3 @@
-
 import 'package:flutter/widgets.dart';
 
 openPlatformConnection(String name) {
@@ -14,7 +13,7 @@ class NotificationConnection {
     throw UnimplementedError();
   }
 
-  static Future<Map?> getNowPlaying() async {
+  static Future<List<Map<String, dynamic>>?> getActiveSessions() async {
     throw UnimplementedError();
   }
 
@@ -28,13 +27,11 @@ class NotificationConnection {
 
   static Future<Image?> getImage() async {
     throw UnimplementedError();
- 
   }
 
   static bool imaginepause = true;
   static togglePause() {
     throw UnimplementedError();
- 
   }
 
   static Future<bool> play() async {
@@ -46,6 +43,10 @@ class NotificationConnection {
   }
 
   static Future<bool> hasNotificationAccess() async {
+    throw UnimplementedError();
+  }
+
+  static Future<List<Map<String, dynamic>>?> update() async {
     throw UnimplementedError();
   }
 }

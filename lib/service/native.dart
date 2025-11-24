@@ -26,8 +26,8 @@ class NotificationConnection {
     await _methodChannel.invokeMethod("openNotificationAccessSettings");
   }
 
-  static Future<Map?> getNowPlaying() async {
-    return await _methodChannel.invokeMethod("getNowPlaying");
+  static Future<Map?> update() async {
+    return await _methodChannel.invokeMethod("update");
   }
 
   static Future<bool> seekTo(Duration position) async {

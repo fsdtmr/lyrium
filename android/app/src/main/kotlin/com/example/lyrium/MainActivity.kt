@@ -23,8 +23,9 @@ class MainActivity : FlutterActivity() {
                                     events: EventChannel.EventSink?
                             ) {
                                 MusicNotificationListener.eventSink = events
-                            }
 
+                                MusicNotificationListener.update()
+                            }
                             override fun onCancel(arguments: Any?) {
                                 MusicNotificationListener.eventSink = null
                             }
@@ -43,8 +44,9 @@ class MainActivity : FlutterActivity() {
                         "getPosition" -> result.success(MusicNotificationListener.getPosition(this))
                         "getImageData" ->
                                 result.success(MusicNotificationListener.getImageData(this))
-                        "getNowPlaying" ->
-                                result.success(MusicNotificationListener.getNowPlaying(this))
+                        "update" -> {
+                            result.success(MusicNotificationListener.update())
+                        }
                         "openNotificationAccessSettings" -> {
                             val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
                             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

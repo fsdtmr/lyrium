@@ -47,7 +47,17 @@ class _QuickSearchState extends State<QuickSearch> {
     try {
       if (_mode == SearchSource.global) {
         final api = ApiHandler();
-        lastresults = await api.searchTracks(query);
+        lastresults = await api.searchTracks(query).then((c) {
+          if (widget.initailQuery != null) {
+            final target = widget.initailQuery!.durationseconds;
+            c.sort((a, b) {
+              final diffA = (a.duration! - target).abs();
+              final diffB = (b.duration! - target).abs();
+              return diffA.compareTo(diffB);
+            });
+          }
+          return c;
+        });
         lastquery = query;
         setState(() {
           _results = lastresults;
@@ -78,7 +88,7 @@ class _QuickSearchState extends State<QuickSearch> {
   @override
   void initState() {
     _controller.text = widget.initailQuery != null
-        ? "${widget.initailQuery?.trackName}"
+        ? "${widget.initailQuery?.trackName} - ${widget.initailQuery?.artistName}"
         : lastquery;
     _results = lastresults;
     _search();
@@ -107,7 +117,10 @@ class _QuickSearchState extends State<QuickSearch> {
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 14,
+                  horizontal: 12,
+                ),
                 child: Row(
                   children: [
                     const Icon(Icons.search, color: Colors.indigo, size: 26),
@@ -159,7 +172,7 @@ class _QuickSearchState extends State<QuickSearch> {
                 ),
               ),
             ),
-        
+
             Padding(
               padding: EdgeInsetsGeometry.all(8.0),
               child: Wrap(
@@ -178,7 +191,7 @@ class _QuickSearchState extends State<QuickSearch> {
                       }
                     },
                   ),
-        
+
                   ChoiceChip(
                     label: const Text('Saved'),
                     selected: _mode == SearchSource.local,

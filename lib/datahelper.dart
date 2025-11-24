@@ -30,7 +30,13 @@ class DataHelper {
 
   /// Fetch all tracks
   Future<List<LyricsTrack>> getAllTracks() async {
-    final allLyrics = await db.select(db.lyrics).get();
+    final allLyrics =
+        await (db.select(db.lyrics)..orderBy([
+              (u) => OrderingTerm(expression: u.id, mode: OrderingMode.desc),
+              (u) => OrderingTerm(expression: u.id),
+            ]))
+            .get();
+
     return allLyrics.map((e) => LyricsTrack.fromDrift(e)).toList();
   }
 

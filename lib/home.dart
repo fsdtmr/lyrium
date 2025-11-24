@@ -16,12 +16,11 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Consumer<MusicController>(
       builder: (BuildContext context, MusicController ctrl, Widget? child) {
-        // return AnimatedCrossFade(
-
-        // );
         return AnimatedCrossFade(
-          firstChild: Center(
-            child: SizedBox(width: 50, child: LinearProgressIndicator()),
+          firstChild: Scaffold(
+            body: Center(
+              child: SizedBox(width: 50, child: LinearProgressIndicator()),
+            ),
           ),
           secondChild: buildpage(ctrl),
           crossFadeState: ctrl.isReady
@@ -33,12 +32,15 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Builder buildpage(MusicController ctrl) {
+  Widget buildpage(MusicController ctrl) {
+    if (!ctrl.isReady) return SizedBox.shrink();
+
     return Builder(
       builder: (context) {
         if (ctrl.showTrack) {
           return Scaffold(
             appBar: AppBar(
+              
               title: ctrl.info == null && ctrl.lyrics == null
                   ? DefaultHeader(mode: false)
                   : GestureDetector(
@@ -48,11 +50,15 @@ class _HomePageState extends State<HomePage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            ctrl.info?.trackName ??
-                                ctrl.lyrics?.trackName ??
-                                "Track",
-                            overflow: TextOverflow.ellipsis,
+                          Row(
+                            children: [
+                              Text(
+                                ctrl.info?.trackName ??
+                                    ctrl.lyrics?.trackName ??
+                                    "Track",
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
                           Text(
                             ctrl.info?.artistName ??
@@ -70,6 +76,7 @@ class _HomePageState extends State<HomePage> {
         } else {
           return Scaffold(
             body: QuickSearch(
+              initailQuery: ctrl.info,
               emptyResults: (c) => buildUserSuggesions(c, ctrl),
             ),
           );
@@ -78,7 +85,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Builder buildcontent(MusicController ctrl) {
+  Widget buildcontent(MusicController ctrl) {
     return Builder(
       builder: (context) {
         if (ctrl.lyrics == null) {
@@ -103,7 +110,6 @@ class _HomePageState extends State<HomePage> {
         final isPlaying = ctrl.isPlaying;
         final atPosition = ctrl.progress;
 
-        // return Text("data");
         return LyricsView(
           lyrics: track,
           isPlaying: isPlaying,
@@ -128,16 +134,25 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  bool busyFeching = false;
+
   Widget _buildFetcher(BuildContext context, MusicController ctrl) {
     return GestureDetector(
-      onDoubleTap: () => ctrl.setShowTrackMode(false),
-      onLongPress: () async {
+      onTap: () async {
+        if (busyFeching) return;
         try {
+          busyFeching = true;
+          setState(() {});
           await ctrl.fetchAndSaveLyrics();
         } catch (e) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text("Error Fetching: $e")));
+
+          ctrl.setShowTrackMode(false);
+        } finally {
+          setState(() {});
+          busyFeching = false;
         }
       },
       child: Padding(
@@ -145,30 +160,34 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // const Text("🔍", textScaler: TextScaler.linear(5)),
-            // Slider(value: ctrl.progressValue, onChanged: ctrl.seek),
-            FutureBuilder(
-              future: ctrl.image,
-              builder: (c, s) {
-                return AspectRatio(
-                  aspectRatio: 1,
-                  child:
-                      s.data ??
-                      Center(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            color: Theme.of(context).secondaryHeaderColor,
-                          ),
-                          child: Icon(
-                            Icons.music_note,
-                            size: 300,
-                            color: Theme.of(context).scaffoldBackgroundColor,
+            AnimatedPadding(
+              padding: busyFeching
+                  ? EdgeInsetsGeometry.all(20)
+                  : EdgeInsetsGeometry.all(0),
+              duration: Durations.long1,
+              child: FutureBuilder(
+                future: ctrl.image,
+                builder: (c, s) {
+                  return AspectRatio(
+                    aspectRatio: 1,
+                    child:
+                        s.data ??
+                        Center(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              color: Theme.of(context).secondaryHeaderColor,
+                            ),
+                            child: Icon(
+                              Icons.music_note,
+                              size: 300,
+                              color: Theme.of(context).scaffoldBackgroundColor,
+                            ),
                           ),
                         ),
-                      ),
-                );
-              },
+                  );
+                },
+              ),
             ),
             SizedBox(height: 30),
             FittedBox(
@@ -180,10 +199,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             Text(ctrl.info?.artistName ?? ""),
-            Text(
-              "Hold to fetch",
-              style: TextStyle(color: Colors.grey.withAlpha(100)),
-            ),
+            Text("Search", style: TextStyle(color: Colors.grey.withAlpha(100))),
           ],
         ),
       ),

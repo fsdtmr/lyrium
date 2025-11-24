@@ -20,9 +20,7 @@ class NotificationConnection {
     throw UnimplementedError();
   }
 
-  static Future<Map?> getNowPlaying() async {
-    throw UnimplementedError();
-  }
+  static Future<dynamic> update() =>   NotificationConnection.update();
 
   static Future<bool> seekTo(Duration position) async {
     return false;
