@@ -36,10 +36,7 @@ class NotificationConnection {
 
   static Future<Duration> getPosition() async {
      final data =  await _methodChannel.invokeMethod<int?>("getPosition");
-
-
       return Duration(milliseconds: data ?? 0);
-
   }
 
   static Future<Image?> getImage() async {

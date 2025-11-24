@@ -39,7 +39,6 @@ class MusicNotificationListener : NotificationListenerService() {
             return true
         }
 
-        // 1. GET LIST: Returns a list of ALL active media sessions found in notifications
         fun getActiveMediaSessions(context: Context): List<Map<String, Any?>> {
             val currentInstance = instance ?: return emptyList()
             val list = mutableListOf<Map<String, Any?>>()
@@ -47,7 +46,6 @@ class MusicNotificationListener : NotificationListenerService() {
             try {
                 val notifications = currentInstance.activeNotifications
                 for (sbn in notifications) {
-                    // Check if notification has a Media Session Token attached
                     val token =
                             sbn.notification.extras.getParcelable(
                                     Notification.EXTRA_MEDIA_SESSION,
@@ -66,7 +64,6 @@ class MusicNotificationListener : NotificationListenerService() {
             return list
         }
 
-        // 2. CONTROLS: Play/Pause/Seek
         fun play(context: Context) = sendControl(context) { it.play() }
         fun pause(context: Context) = sendControl(context) { it.pause() }
         fun skipNext(context: Context) = sendControl(context) { it.skipToNext() }
@@ -142,8 +139,6 @@ class MusicNotificationListener : NotificationListenerService() {
         }
     }
 
-    // --- SERVICE INSTANCE LOGIC ---
-
     private lateinit var sessionManager: MediaSessionManager
 
     override fun onCreate() {
@@ -169,9 +164,8 @@ class MusicNotificationListener : NotificationListenerService() {
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {
         if (shouldIgnore(sbn)) return
-        // If the app we are listening to dies, try to find another one or clear
         if (sbn?.packageName == activeToken?.let { MediaController(this, it).packageName }) {
-            updateActiveSession() // Will find next best or null
+            updateActiveSession() 
         }
     }
 
