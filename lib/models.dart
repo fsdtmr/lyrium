@@ -12,6 +12,37 @@ class TrackInfo {
     required this.albumName,
     required this.durationseconds,
   });
+
+  static List<String> advertisement = ["Advertisement"];
+  static List<String> clearArtists = ["Recommended for you", "•"];
+  TrackInfo? clearTemplates() {
+    String clearedTrack = trackName;
+    String clearedArtist = artistName;
+    String clearedAlbum = albumName;
+
+    for (var e in advertisement) {
+      clearedTrack = clearedTrack.replaceFirst(e, "").trim();
+    }
+
+    for (var e in clearArtists) {
+      clearedArtist = clearedArtist.replaceFirst(e, "").trim();
+    }
+
+    if (advertisement.any((e) => clearedArtist.contains(e))) {
+      return null;
+    }
+
+    if (trackName == "") {
+      return null;
+    }
+
+    return TrackInfo(
+      artistName: clearedArtist,
+      trackName: clearedTrack,
+      albumName: clearedAlbum,
+      durationseconds: durationseconds,
+    );
+  }
 }
 
 class LyricsTrack {

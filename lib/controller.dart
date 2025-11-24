@@ -32,7 +32,6 @@ class MusicController extends ChangeNotifier {
   }
 
   Future<void> _init() async {
-    //TODO: fix too much work on startup
     await Future.delayed(Duration(seconds: 2));
     await _checkAccessAndStream();
     _startPolling();
@@ -55,9 +54,21 @@ class MusicController extends ChangeNotifier {
       isReady = true;
       notifyListeners();
 
+      late Function(Map<dynamic, dynamic>? data) reader;
+
+      reader = (Map<dynamic, dynamic>? data) {
+        _setData(data);
+
+        if (isPlaying) {
+          showTrack = true;
+        }
+
+        reader = (Map<dynamic, dynamic>? data) => _setData(data);
+      };
+
       if (hasAccess) {
         _notificationSubscription = MusicNotificationService.notifications
-            .listen(_setData);
+            .listen((m) => reader(m));
       }
     } on PlatformException catch (e) {
       debugPrint("Access check failed: ${e.message}");

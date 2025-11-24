@@ -36,6 +36,32 @@ class _QuickSearchState extends State<QuickSearch> {
   String? _error;
   SearchSource _mode = SearchSource.local;
 
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  late TrackInfo? initailQuery;
+
+  @override
+  void initState() {
+    initailQuery = widget.initailQuery?.clearTemplates();
+    _controller.text = initailQuery != null
+        ? "${initailQuery?.trackName} - ${initailQuery?.artistName}"
+        : lastquery;
+    _results = lastresults;
+    _search();
+    super.initState();
+  }
+
+  void _clearInput() {
+    _controller.clear();
+    setState(() {
+      _results = [];
+      _error = null;
+    });
+  }
+
   Future<void> _search() async {
     final query = _controller.text.trim();
     if (query.isEmpty && _mode != SearchSource.local) return;
@@ -48,8 +74,8 @@ class _QuickSearchState extends State<QuickSearch> {
       if (_mode == SearchSource.global) {
         final api = ApiHandler();
         lastresults = await api.searchTracks(query).then((c) {
-          if (widget.initailQuery != null) {
-            final target = widget.initailQuery!.durationseconds;
+          if (initailQuery != null) {
+            final target = initailQuery!.durationseconds;
             c.sort((a, b) {
               final diffA = (a.duration! - target).abs();
               final diffB = (b.duration! - target).abs();
@@ -78,29 +104,6 @@ class _QuickSearchState extends State<QuickSearch> {
         _loading = false;
       });
     }
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  @override
-  void initState() {
-    _controller.text = widget.initailQuery != null
-        ? "${widget.initailQuery?.trackName} - ${widget.initailQuery?.artistName}"
-        : lastquery;
-    _results = lastresults;
-    _search();
-    super.initState();
-  }
-
-  void _clearInput() {
-    _controller.clear();
-    setState(() {
-      _results = [];
-      _error = null;
-    });
   }
 
   @override
