@@ -41,7 +41,15 @@ class _HomePageState extends State<HomePage> {
         if (ctrl.showTrack) {
           return Scaffold(
             appBar: ctrl.lyrics == null
-                ? AppBar(leading: IconButton(onPressed: ()=>  ctrl.setShowTrackMode(false), icon: RotatedBox(quarterTurns: 1, child: Icon(Icons.chevron_right))),)
+                ? AppBar(
+                    leading: IconButton(
+                      onPressed: () => ctrl.setShowTrackMode(false),
+                      icon: RotatedBox(
+                        quarterTurns: 1,
+                        child: Icon(Icons.chevron_right),
+                      ),
+                    ),
+                  )
                 : AppBar(
                     leading: FutureBuilder(
                       future: ctrl.image,
@@ -123,17 +131,36 @@ class _HomePageState extends State<HomePage> {
         final isPlaying = ctrl.isPlaying;
         final atPosition = ctrl.progress;
 
+        final textColor =
+            Theme.of(context).textTheme.bodyMedium?.color ?? Colors.black;
+
+        var textStyle = TextStyle(
+          fontSize: 40,
+
+          fontWeight: FontWeight.w800,
+          color: textColor.withAlpha(127),
+        );
+        var highlighttextStyle = TextStyle(
+          fontSize: 40,
+          fontWeight: FontWeight.w800,
+          color: textColor,
+        );
+
+        var textScaler = TextScaler.linear(2);
+
         return SizedBox(
           // width: 500,
           // height: 500,
           child: LyricsView(
+            textStyle: textStyle,
+            highlighttextStyle: highlighttextStyle,
             lyrics: track,
             isPlaying: isPlaying,
             atPosition: atPosition,
             getPrimaryPosition: ctrl.position,
             togglePause: (b) => ctrl.togglePause(pause: b),
             seek: ctrl.seekTo,
-            onSave: ctrl.saveLyrics,
+            onSave: ctrl.startLyricsSaved,
           ),
         );
       },

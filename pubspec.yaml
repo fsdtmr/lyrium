@@ -27,6 +27,7 @@ dependencies:
   drift_flutter: ^0.2.7
 
   path: any
+  collection: ^1.19.1
 dev_dependencies:
   flutter_test:
     sdk: flutter

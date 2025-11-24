@@ -1,10 +1,11 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:lyrium/editor.dart';
 import 'package:lyrium/utils/clock.dart';
 import 'package:lyrium/models.dart';
 import 'package:lyrium/utils/duration.dart';
 import 'package:lyrium/utils/lrc.dart';
-import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
+import 'package:collection/collection.dart';
 
 class LyricsView extends StatefulWidget {
   final LyricsTrack? lyrics;
@@ -15,6 +16,10 @@ class LyricsView extends StatefulWidget {
 
   final bool isPlaying;
   final Duration? atPosition;
+
+  final TextStyle? textStyle;
+  final TextStyle? highlighttextStyle;
+
   const LyricsView({
     super.key,
     this.lyrics,
@@ -24,6 +29,8 @@ class LyricsView extends StatefulWidget {
     required this.atPosition,
     required this.onSave,
     required this.getPrimaryPosition,
+    this.textStyle,
+    this.highlighttextStyle,
   });
 
   @override
@@ -31,19 +38,22 @@ class LyricsView extends StatefulWidget {
 }
 
 class _LyricsViewState extends State<LyricsView> {
-  late List<LRCLine>? lyrics;
-  final ItemScrollController itemScrollController = ItemScrollController();
+  late List<LRCLine> lyrics;
 
   late Duration duration = const Duration(seconds: 0);
   double position = 0.0;
   Duration newPosition = const Duration(seconds: 0);
   int lyindex = -1;
   late ClockManager watchManager;
+
+  late List<GlobalKey> keys;
+
   @override
   void initState() {
     duration = widget.lyrics?.duration?.toDuration() ?? Duration.zero;
 
     lyrics = toLRCLineList(widget.lyrics?.syncedLyrics ?? "");
+    keys = List<GlobalKey>.generate(lyrics.length, (i) => GlobalKey());
 
     watchManager = ClockManager((Duration elapsed) {
       if (mounted) {
@@ -106,36 +116,38 @@ class _LyricsViewState extends State<LyricsView> {
             }
             return true;
           },
-          child: ScrollablePositionedList.separated(
-            separatorBuilder: (context, index) => SizedBox(
-              height: 20, // Space between lyrics lines
+          child: SingleChildScrollView(
+            child: RichText(
+              text: TextSpan(
+                children:
+                    lyrics
+                        ?.mapIndexed(
+                          (index, line) => TextSpan(
+                            children: [
+                              WidgetSpan(
+                                child: SizedBox.fromSize(
+                                  size: Size.zero,
+                                  key: keys[index],
+                                ),
+                              ),
+
+                              TextSpan(
+                                text: "${line.text}\n",
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () =>
+                                      incrementLyric(index - lyindex),
+                                style: index == lyindex
+                                    ? widget.highlighttextStyle
+                                    : widget.textStyle,
+                              ),
+                            ],
+                          ),
+                        )
+                        .toList() ??
+                    [],
+              ),
             ),
-            itemScrollController: itemScrollController,
-            itemCount: lyrics!.length,
-            itemBuilder: (context, index) {
-              return GestureDetector(
-                onTap: () {
-                  incrementLyric(index - lyindex);
-                },
-
-                child: Builder(
-                  builder: (builder) {
-                    final line = lyrics![index];
-
-                    return AnimatedOpacity(
-                      opacity: index == lyindex ? 1 : .5,
-                      duration: Durations.short4,
-                      child: Text(
-                        line.text,
-                        textScaler: TextScaler.linear(2),
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                    );
-                  },
-                ),
-              );
-            },
-          ),
+          ), // buildscrolling(),
         ),
       ),
 
@@ -286,15 +298,21 @@ class _LyricsViewState extends State<LyricsView> {
 
   void scrollto(int lyindex) {
     if (animatingto == lyindex) return;
+
     animating = true;
 
-    if (!itemScrollController.isAttached) return;
-    itemScrollController
-        .scrollTo(index: lyindex, duration: Durations.short4, alignment: .3)
-        .then((q) {
-          animating = false;
-        });
-
+    final context = keys[lyindex].currentContext;
+    if (context != null) {
+      Scrollable.ensureVisible(
+        context,
+        duration: Durations.short4,
+        alignment: .3,
+        curve: Curves.easeInOut,
+      ).then((q) {
+        animating = false;
+      });
+    }
+    // }
     animatingto = lyindex;
   }
 }

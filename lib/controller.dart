@@ -89,8 +89,8 @@ class MusicController extends ChangeNotifier {
 
       package = data["package"];
       duration = Duration(milliseconds: (data["duration"] as int?) ?? 0);
-      progress = Duration(milliseconds: (data["progress"] as int?) ?? 0);
-      isPlaying = data["${IS_PLAYING}"] as bool? ?? false;
+      progress = Duration(milliseconds: (data["position"] as int?) ?? 0);
+      isPlaying = data[IS_PLAYING] as bool? ?? false;
 
       info = TrackInfo(
         artistName: data["artist"],
@@ -99,7 +99,8 @@ class MusicController extends ChangeNotifier {
         durationseconds: duration.inDouble,
       );
 
-      if (prevName != info?.trackName) {
+      
+      if (prevName != info?.trackName && !unattachedMode) {
         await _onTrackChanged();
       }
     }
@@ -132,17 +133,17 @@ class MusicController extends ChangeNotifier {
     final api = ApiHandler();
     final lyricsData = await api.find(info!);
 
-    await DataHelper.instance.saveTrack(lyricsData.first, info);
-    setLyrics(lyricsData.first);
+    startLyricsSaved(lyricsData.first,true);
   }
 
-  Future<void> saveLyrics(LyricsTrack track) async {
+  Future<void> startLyricsSaved(LyricsTrack track,[bool attached = false]) async {
     await DataHelper.instance.saveTrack(track, info);
-    setLyrics(track);
+    setLyrics(track, attached);
   }
-
-  void setLyrics(LyricsTrack? track) {
+  var unattachedMode = false;
+  void setLyrics(LyricsTrack? track, [bool attached  = false]) {
     lyrics = track;
+    unattachedMode = !attached;
     notifyListeners();
   }
 

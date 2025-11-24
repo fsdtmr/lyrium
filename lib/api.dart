@@ -31,9 +31,10 @@ class ApiHandler {
   }
 
   Future<List<LyricsTrack>> searchTracks(String query) async {
+
     final res = await _get<List<dynamic>>(
       '/api/search',
-      queryParameters: {'q': query},
+      queryParameters: {'q': query.split("-").first},
     );
     return mapTracks(res);
   }
