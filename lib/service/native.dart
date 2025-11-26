@@ -26,7 +26,7 @@ class NotificationConnection {
     await _methodChannel.invokeMethod("openNotificationAccessSettings");
   }
 
-  static Future<Map?> update() async {
+  static Future<bool> update() async {
     return await _methodChannel.invokeMethod("update");
   }
 

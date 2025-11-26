@@ -15,7 +15,7 @@ class DataHelper {
         .into(db.lyrics)
         .insert(
           LyricsCompanion.insert(
-            originId: Value("lrclib:${track.id}"),
+            originId: Value("${track.id}"),
             title: track.trackName,
             artist: Value(track.artistName),
             album: Value(track.albumName),
@@ -52,13 +52,12 @@ class DataHelper {
     return result.map((e) => LyricsTrack.fromDrift(e)).toList();
   }
 
-  /// Get a specific track
   Future<LyricsTrack?> getTrack(TrackInfo trackInfo) async {
     final q = db.select(db.lyrics)
       ..where(
         (t) =>
-            t.title.equals(trackInfo.trackName) &
-            t.artist.equals(trackInfo.artistName) &
+            t.title.equals(trackInfo.trackName) |
+            t.artist.equals(trackInfo.artistName) |
             t.album.equals(trackInfo.albumName),
       )
       ..limit(1);
@@ -67,7 +66,6 @@ class DataHelper {
     return result == null ? null : LyricsTrack.fromDrift(result);
   }
 
-  /// Update an existing track
   Future<bool> updateTrack(LyricsTrack track) async {
     final q = db.update(db.lyrics)..where((t) => t.id.equals(track.id));
 
@@ -85,7 +83,6 @@ class DataHelper {
     return updated > 0;
   }
 
-  /// Delete a track
   Future delete(LyricsTrack track) async {
     return db.delete(db.lyrics)
       ..where((t) => t.id.equals(track.id))

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lyrium/controller.dart';
 import 'package:lyrium/editor.dart';
+import 'package:lyrium/models.dart';
 import 'package:lyrium/search.dart';
 import 'package:provider/provider.dart';
 import 'package:lyrium/viewer.dart';
@@ -152,15 +153,17 @@ class _HomePageState extends State<HomePage> {
           // width: 500,
           // height: 500,
           child: LyricsView(
+            controller: TempController(
+              lyrics: track ?? LyricsTrack.empty(),
+              isPlaying: isPlaying,
+              atPosition: atPosition,
+              getPrimaryPosition: ctrl.position,
+              onTogglePause: (b) => ctrl.togglePause(pause: b),
+              onSeek: ctrl.seekTo,
+            ),
             textStyle: textStyle,
             highlighttextStyle: highlighttextStyle,
-            lyrics: track,
-            isPlaying: isPlaying,
-            atPosition: atPosition,
-            getPrimaryPosition: ctrl.position,
-            togglePause: (b) => ctrl.togglePause(pause: b),
-            seek: ctrl.seekTo,
-            onSave: ctrl.startLyricsSaved,
+            onSave: (s) => ctrl.startLyricsSaved(s),
           ),
         );
       },
@@ -308,12 +311,10 @@ class _HomePageState extends State<HomePage> {
         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
       ),
       const SizedBox(height: 8),
-
       TextButton(
         onPressed: () => Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (c) =>
-                SimpleLyricEditor(initial: "", info: controller.info),
+            builder: (c) => LyricsEditor(track: LyricsTrack.empty()),
           ),
         ),
         child: const Text("Add New"),

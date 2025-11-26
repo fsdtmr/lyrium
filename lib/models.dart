@@ -53,6 +53,7 @@ class TrackInfo {
 
 class LyricsTrack {
   final int id;
+  final String namespace;
   final String trackName;
   final String? artistName;
   final String? albumName;
@@ -70,28 +71,14 @@ class LyricsTrack {
     this.instrumental,
     this.plainLyrics,
     this.syncedLyrics,
+    required this.namespace,
   });
-
-  factory LyricsTrack.fromJson(Map<String, dynamic> json) {
-    return LyricsTrack(
-      id: json['id'] as int,
-      trackName: json['trackName'] as String? ?? 'Unknown Track',
-      artistName: json['artistName'] as String?,
-      albumName: json['albumName'] as String?,
-      duration: json['duration'] as double?,
-      instrumental: json['instrumental'] as bool?,
-      plainLyrics: json['plainLyrics'] as String?,
-      syncedLyrics: json['syncedLyrics'] as String?,
-      // url:
-      //     'artist_name=${Uri.encodeComponent(json['artistName'])}&track_name=${Uri.encodeComponent(json['trackName'])}&album_name=${Uri.encodeComponent(json['albumName'])}&duration=${json['duration']}',
-    );
-  }
   @override
   String toString() {
     return toMap().toString();
   }
 
-  static LyricsTrack fromMap(Map<String, dynamic> map) {
+  static LyricsTrack fromMap(String namespace, Map<String, dynamic> map) {
     return LyricsTrack(
       id: map['id'],
       trackName: map['trackName'],
@@ -101,6 +88,7 @@ class LyricsTrack {
       instrumental: map['instrumental'] == 1,
       plainLyrics: map['plainLyrics'],
       syncedLyrics: map['syncedLyrics'],
+      namespace: namespace,
     );
   }
 
@@ -127,6 +115,7 @@ class LyricsTrack {
       instrumental: lyric.instrumental ?? false,
       plainLyrics: lyric.lyrics,
       syncedLyrics: lyric.lyrics,
+      namespace: 'local',
     );
   }
 
@@ -137,5 +126,9 @@ class LyricsTrack {
       albumName: albumName ?? "Not Set",
       durationseconds: duration ?? 0,
     );
+  }
+
+  static empty() {
+    return LyricsTrack(id: -1, trackName: "Unset", namespace: "Template");
   }
 }

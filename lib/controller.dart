@@ -99,7 +99,6 @@ class MusicController extends ChangeNotifier {
         durationseconds: duration.inDouble,
       );
 
-      
       if (prevName != info?.trackName && !unattachedMode) {
         await _onTrackChanged();
       }
@@ -133,15 +132,19 @@ class MusicController extends ChangeNotifier {
     final api = ApiHandler();
     final lyricsData = await api.find(info!);
 
-    startLyricsSaved(lyricsData.first,true);
+    startLyricsSaved(lyricsData.first, true);
   }
 
-  Future<void> startLyricsSaved(LyricsTrack track,[bool attached = false]) async {
+  Future<void> startLyricsSaved(
+    LyricsTrack track, [
+    bool attached = false,
+  ]) async {
     await DataHelper.instance.saveTrack(track, info);
     setLyrics(track, attached);
   }
+
   var unattachedMode = false;
-  void setLyrics(LyricsTrack? track, [bool attached  = false]) {
+  void setLyrics(LyricsTrack? track, [bool attached = false]) {
     lyrics = track;
     unattachedMode = !attached;
     notifyListeners();

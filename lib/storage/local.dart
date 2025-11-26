@@ -2,12 +2,11 @@ import 'package:drift/drift.dart';
 import 'package:lyrium/service/service.dart';
 
 part 'local.g.dart';
-// -------------------
-// 
-// -------------------
+ 
 
 class Lyrics extends Table {
   IntColumn get id => integer().autoIncrement()();
+  TextColumn get namespace => text()();
   TextColumn get originId => text().nullable()();
   IntColumn get interlinked =>
       integer().nullable().references(Lyrics, #id)(); 
@@ -32,10 +31,6 @@ class AppDatabase extends _$AppDatabase {
   @override
   int get schemaVersion => 1;
 }
-
-// -------------------
-// CONNECTION HELPER
-// -------------------
 
 LazyDatabase _openConnection(String name) {
   return openConnection(name);

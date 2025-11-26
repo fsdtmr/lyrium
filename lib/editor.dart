@@ -1,88 +1,221 @@
 import 'package:flutter/material.dart';
 import 'package:lyrium/models.dart';
+import 'package:lyrium/viewer.dart';
 
+import 'package:pretty_diff_text/pretty_diff_text.dart';
 
-class SimpleLyricEditor extends StatefulWidget {
+class LyricsEditor extends StatefulWidget {
+  final LyricsTrack track;
 
-  final TrackInfo? info;
-  final String initial;
-  const SimpleLyricEditor({super.key, required this.initial, this.info});
+  const LyricsEditor({super.key, required this.track});
 
   @override
-  State<SimpleLyricEditor> createState() => _SimpleLyricEditorState();
+  State<LyricsEditor> createState() => _LyricsEditorState();
 }
 
-class _SimpleLyricEditorState extends State<SimpleLyricEditor> {
-  TextEditingController textEditingController = TextEditingController();
+class _LyricsEditorState extends State<LyricsEditor> {
+  final TextEditingController textEditingController = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+  final UndoHistoryController _undoController = UndoHistoryController();
 
+  static const _plaintextMode = [false, true];
+  static const _lrctextMode = [true, false];
+
+  late List<bool> modeSelected;
+
+  late String initial;
+  late TrackInfo? info;
   @override
   void initState() {
-    textEditingController.text = widget.initial;
     super.initState();
+    info = widget.track.toInfo();
+    initial = widget.track.editable;
+    modeSelected = _lrctextMode;
+    textEditingController.text = initial;
   }
+
+  TextStyle get enabledStyle => Theme.of(context).textTheme.bodyMedium!;
+  TextStyle get disabledStyle =>
+      Theme.of(context).textTheme.bodyMedium!.copyWith(color: Colors.grey);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.info?.trackName ?? "Not set"),
-        actions: [IconButton(onPressed: () {}, icon: Icon(Icons.done))],
+        title: Text(info?.trackName ?? "Not set"),
+        actions: [
+          IconButton(
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (c) {
+                  return Dialog.fullscreen(
+                    child: Column(
+                      children: [
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: SizedBox(
+                            width: 700,
+                            child: SingleChildScrollView(
+                              child: DiffView(
+                                from: initial,
+                                to: textEditingController.text,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+            icon: const Icon(Icons.done),
+          ),
+        ],
       ),
 
       body: SafeArea(
-        child: Padding(
-          padding: EdgeInsetsGeometry.symmetric(horizontal: 20),
-          child:  SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SizedBox(
-              width: 700,
-              child: TextField(
-                minLines: 100,
-                maxLines: 1000,
-                controller: textEditingController,),
+        child: Column(
+          children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(
+                    width: 700,
+                    child: Stack(
+                      children: [
+                        switch (modeSelected) {
+                          _lrctextMode => TextField(
+                            minLines: 100,
+                            maxLines: null,
+                            controller: textEditingController,
+                            focusNode: _focusNode,
+                            undoController: _undoController, // ← key line
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                            ),
+                          ),
+                          _plaintextMode => TextField(
+                            minLines: 100,
+                            maxLines: null,
+                            controller: textEditingController,
+                            focusNode: _focusNode,
+                            undoController: _undoController, // ← key line
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                            ),
+                          ),
+
+                          [...] => SizedBox(),
+                        },
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
-          )
-          
-          // Stack(
-          //   children: [
-          //     SelectableRichText(
-          //       text: toLRCLineList(widget.initial).toSpans() ?? [],
-          //     ),
-          //   ],
-          // ),
+
+            Row(
+              children: [
+                ToggleButtons(
+                  isSelected: modeSelected,
+                  children: [
+                    IconButton(
+                      onPressed: () {
+                        setState(() => modeSelected = _lrctextMode);
+                      },
+                      icon: const Icon(Icons.list_alt),
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        setState(() => modeSelected = _plaintextMode);
+                      },
+                      icon: const Icon(Icons.text_fields),
+                    ),
+                  ],
+                ),
+
+                const Spacer(),
+
+                ValueListenableBuilder<UndoHistoryValue>(
+                  valueListenable: _undoController,
+                  builder: (context, value, _) {
+                    return Row(
+                      children: [
+                        IconButton(
+                          isSelected: value.canUndo,
+                          onPressed: () async {
+                            if (!value.canUndo) {
+                              textEditingController.text = initial;
+                              final confirmed = await showDiscardChangesDialog(
+                                context,
+                              );
+                              if (confirmed) {}
+                            } else {
+                              _undoController.undo();
+                            }
+                          },
+                          icon: Icon(Icons.undo),
+                        ),
+                        IconButton(
+                          isSelected: value.canRedo,
+                          onPressed: () => _undoController.redo(),
+                          icon: Icon(Icons.redo),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
+
+  Future<bool> showDiscardChangesDialog(BuildContext context) async {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Discard changes?'),
+        content: const Text(
+          'You have unsaved changes. Do you really want to discard them?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Discard'),
+          ),
+        ],
+      ),
+    ).then((v) {
+      return v ?? false;
+    });
+  }
 }
 
+class DiffView extends StatelessWidget {
+  final String from;
+  final String to;
 
-class SelectableRichText extends StatelessWidget {
-  final List<TextSpan> text;
+  const DiffView({super.key, required this.from, required this.to});
 
-  const SelectableRichText({super.key, required this.text});
   @override
   Widget build(BuildContext context) {
-    return SelectableText.rich(
-      TextSpan(text: "", children: text),
-      showCursor: true,
-      cursorColor: Colors.red,
-      cursorWidth: 2,
-
-      onSelectionChanged: (selection, cause) => {
-        switch (cause) {
-          null => () {},
-          SelectionChangedCause.tap => () {},
-          SelectionChangedCause.doubleTap => () {},
-          SelectionChangedCause.longPress => () {},
-          SelectionChangedCause.forcePress => () {},
-          SelectionChangedCause.keyboard => () {},
-          SelectionChangedCause.toolbar => () {},
-          SelectionChangedCause.drag => () {
-          },
-          SelectionChangedCause.stylusHandwriting => () {},
-        },
-      },
+    return PrettyDiffText(
+      // defaultTextStyle:
+      //     Theme.of(context).textTheme.bodyLarge ??
+      //     const TextStyle(color: Colors.black),
+      oldText: from,
+      newText: to,
     );
   }
 }

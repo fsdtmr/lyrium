@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:lyrium/models.dart';
 
 class ApiHandler {
+  String namespace = "lrclib";
   final String baseUrl;
 
   ApiHandler({this.baseUrl = 'https://lrclib.net'});
@@ -31,7 +32,6 @@ class ApiHandler {
   }
 
   Future<List<LyricsTrack>> searchTracks(String query) async {
-
     final res = await _get<List<dynamic>>(
       '/api/search',
       queryParameters: {'q': query.split("-").first},
@@ -56,7 +56,10 @@ class ApiHandler {
     List<LyricsTrack> tracks = [];
     for (var element in jsonList) {
       try {
-        final track = LyricsTrack.fromJson(element as Map<String, dynamic>);
+        final track = LyricsTrack.fromMap(
+          namespace,
+          element as Map<String, dynamic>,
+        );
 
         tracks.add(track);
       } catch (e) {

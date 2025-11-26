@@ -7,28 +7,58 @@ import 'package:lyrium/utils/duration.dart';
 import 'package:lyrium/utils/lrc.dart';
 import 'package:collection/collection.dart';
 
-class LyricsView extends StatefulWidget {
-  final LyricsTrack? lyrics;
-  final Future<void> Function(bool) togglePause;
-  final Future<void> Function(Duration) seek;
-  final Future<void> Function(LyricsTrack lyrics) onSave;
-  final Future<Duration> Function() getPrimaryPosition;
+abstract class LyricsController {
+  final LyricsTrack lyrics;
 
-  final bool isPlaying;
+  LyricsController({required this.lyrics});
+  Future<void> togglePause(bool b);
+  Future<void> seek(Duration duration);
+  Future<Duration> getPosition();
+
+  bool get isPlaying;
+  Duration? get atPosition;
+  Duration get duration;
+}
+
+class TempController extends LyricsController {
+  final Future<void> Function(bool) onTogglePause;
+  final Future<void> Function(Duration) onSeek;
+  final Future<Duration> Function() getPrimaryPosition;
+  @override
   final Duration? atPosition;
+  @override
+  final bool isPlaying;
+  TempController({
+    required super.lyrics,
+    required this.onTogglePause,
+    required this.onSeek,
+    required this.getPrimaryPosition,
+    required this.isPlaying,
+    this.atPosition,
+  });
+
+  @override
+  Future<Duration> getPosition() => getPrimaryPosition();
+  @override
+  Future<void> seek(Duration duration) => onSeek(duration);
+  @override
+  Future<void> togglePause(bool b) => onTogglePause(b);
+  @override
+  Duration get duration => lyrics.duration.toDuration();
+}
+
+class LyricsView extends StatefulWidget {
+  final LyricsController controller;
+
+  final Future<void> Function(LyricsTrack lyrics) onSave;
 
   final TextStyle? textStyle;
   final TextStyle? highlighttextStyle;
 
   const LyricsView({
     super.key,
-    this.lyrics,
-    required this.togglePause,
-    required this.seek,
-    required this.isPlaying,
-    required this.atPosition,
+    required this.controller,
     required this.onSave,
-    required this.getPrimaryPosition,
     this.textStyle,
     this.highlighttextStyle,
   });
@@ -50,9 +80,9 @@ class _LyricsViewState extends State<LyricsView> {
 
   @override
   void initState() {
-    duration = widget.lyrics?.duration?.toDuration() ?? Duration.zero;
+    duration = widget.controller.duration;
 
-    lyrics = toLRCLineList(widget.lyrics?.syncedLyrics ?? "");
+    lyrics = widget.controller.lyrics.lines;
     keys = List<GlobalKey>.generate(lyrics.length, (i) => GlobalKey());
 
     watchManager = ClockManager((Duration elapsed) {
@@ -72,9 +102,9 @@ class _LyricsViewState extends State<LyricsView> {
       }
     });
     Future.microtask(() async {
-      watchManager.seek(await widget.getPrimaryPosition());
-      if (widget.isPlaying) {
-        watchManager.play(startfrom: widget.atPosition);
+      watchManager.seek(await widget.controller.getPosition());
+      if (widget.controller.isPlaying) {
+        watchManager.play(startfrom: widget.controller.atPosition);
       }
     });
     super.initState();
@@ -82,19 +112,22 @@ class _LyricsViewState extends State<LyricsView> {
 
   @override
   void didUpdateWidget(covariant LyricsView oldWidget) {
-    if (widget.isPlaying != oldWidget.isPlaying) {
-      if (oldWidget.isPlaying != widget.isPlaying) {
-        if (widget.isPlaying) {
+    if (widget.controller.isPlaying != oldWidget.controller.isPlaying) {
+      if (oldWidget.controller.isPlaying != widget.controller.isPlaying) {
+        if (widget.controller.isPlaying) {
           watchManager.play();
-          watchManager.seek(widget.atPosition ?? watchManager.elapsed);
+          watchManager.seek(
+            widget.controller.atPosition ?? watchManager.elapsed,
+          );
         } else {
           watchManager.pause();
           // Bug: seeking creates a invalid state
-          // watchManager.seek(widget.atPosition ?? watchManager.elapsed);
+          // watchManager.seek(widget.controller.atPosition ?? watchManager.elapsed);
         }
       }
-    } else if (widget.atPosition != oldWidget.atPosition) {
-      watchManager.seek(widget.atPosition ?? watchManager.elapsed);
+    } else if (widget.controller.atPosition !=
+        oldWidget.controller.atPosition) {
+      watchManager.seek(widget.controller.atPosition ?? watchManager.elapsed);
     }
 
     super.didUpdateWidget(oldWidget);
@@ -102,7 +135,7 @@ class _LyricsViewState extends State<LyricsView> {
 
   @override
   Widget build(BuildContext context) {
-    if (lyrics == null || lyrics!.isEmpty) {
+    if (lyrics.isEmpty) {
       return const Center(child: Text("No lyrics available"));
     }
 
@@ -121,7 +154,7 @@ class _LyricsViewState extends State<LyricsView> {
               text: TextSpan(
                 children:
                     lyrics
-                        ?.mapIndexed(
+                        .mapIndexed(
                           (index, line) => TextSpan(
                             children: [
                               WidgetSpan(
@@ -167,7 +200,7 @@ class _LyricsViewState extends State<LyricsView> {
                   child: Slider(value: position, onChanged: onSeeked),
                 ),
                 Text(
-                  widget.lyrics?.duration.toShortString() ?? "-----",
+                  widget.controller.lyrics.duration.toShortString() ?? "-----",
                   style: const TextStyle(fontSize: 12),
                 ),
 
@@ -182,13 +215,8 @@ class _LyricsViewState extends State<LyricsView> {
                   onPressed: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (c) => SimpleLyricEditor(
-                          info: widget.lyrics?.toInfo(),
-                          initial:
-                              widget.lyrics?.syncedLyrics ??
-                              widget.lyrics?.plainLyrics ??
-                              "",
-                        ),
+                        builder: (c) =>
+                            LyricsEditor(track: widget.controller.lyrics),
                       ),
                     );
                   },
@@ -209,7 +237,7 @@ class _LyricsViewState extends State<LyricsView> {
                         ? watchManager.play()
                         : watchManager.pause();
 
-                    widget.togglePause(watchManager.paused);
+                    widget.controller.togglePause(watchManager.paused);
                   },
                 ),
                 IconButton(
@@ -244,19 +272,19 @@ class _LyricsViewState extends State<LyricsView> {
 
     watchManager.seek(newPosition);
 
-    widget.seek(newPosition);
+    widget.controller.seek(newPosition);
   }
 
   int prevIndex = 0;
   int findlyric(Duration newPosition) {
-    if (lyrics == null || lyrics!.isEmpty) return -1;
+    if (lyrics.isEmpty) return -1;
 
     int left = 0;
-    int right = lyrics!.length - 1;
+    int right = lyrics.length - 1;
     int resultIndex = 0;
 
-    if (prevIndex >= 0 && prevIndex < lyrics!.length) {
-      if (lyrics![prevIndex].timestamp <= newPosition) {
+    if (prevIndex >= 0 && prevIndex < lyrics.length) {
+      if (lyrics[prevIndex].timestamp <= newPosition) {
         left = prevIndex;
       } else {
         right = prevIndex;
@@ -265,7 +293,7 @@ class _LyricsViewState extends State<LyricsView> {
 
     while (left <= right) {
       int mid = left + ((right - left) >> 1);
-      if (lyrics![mid].timestamp <= newPosition) {
+      if (lyrics[mid].timestamp <= newPosition) {
         resultIndex = mid;
         left = mid + 1;
       } else {
@@ -280,17 +308,17 @@ class _LyricsViewState extends State<LyricsView> {
 
   void incrementLyric(int i) {
     var nextindex = (lyindex += i)
-        .remainder(lyrics!.length)
-        .clamp(0, lyrics!.length - 1);
+        .remainder(lyrics.length)
+        .clamp(0, lyrics.length - 1);
     setState(() {
       lyindex = nextindex;
-      newPosition = lyrics![lyindex].timestamp;
+      newPosition = lyrics[lyindex].timestamp;
       position = newPosition.inMilliseconds / duration.inMilliseconds;
     });
 
     watchManager.seek(newPosition);
 
-    widget.seek(newPosition);
+    widget.controller.seek(newPosition);
   }
 
   int animatingto = -1;
@@ -315,4 +343,9 @@ class _LyricsViewState extends State<LyricsView> {
     // }
     animatingto = lyindex;
   }
+}
+
+extension LyricsTrackExt on LyricsTrack? {
+  List<LRCLine> get lines => toLRCLineList(this?.syncedLyrics ?? "");
+  String get editable => this?.syncedLyrics ?? this?.plainLyrics ?? "";
 }
