@@ -129,6 +129,6 @@ class LyricsTrack {
   }
 
   static empty() {
-    return LyricsTrack(id: -1, trackName: "Unset", namespace: "Template");
+    return LyricsTrack(id: -1, trackName: "", namespace: "Template");
   }
 }

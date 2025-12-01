@@ -96,12 +96,7 @@ class _HomePageState extends State<HomePage> {
             body: buildcontent(ctrl),
           );
         } else {
-          return Scaffold(
-            body: QuickSearch(
-              initailQuery: ctrl.info,
-              emptyResults: (c) => buildUserSuggesions(c, ctrl),
-            ),
-          );
+          return Scaffold(body: QuickSearch(initailQuery: ctrl.info));
         }
       },
     );
@@ -252,22 +247,22 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  buildUserSuggesions(BuildContext context, MusicController controller) {
-    if (controller.isReady) {
-      if (controller.hasAccess) {
-        if (controller.info == null) {
-          return _buildNoMusic();
-        }
-        if (controller.lyrics == null) {
-          return _buildNoResults(controller);
-        }
-      } else {
-        return _buildAccessRequired(context, controller);
-      }
-    }
+  // buildUserSuggesions(BuildContext context, MusicController controller) {
+  //   if (controller.isReady) {
+  //     if (controller.hasAccess) {
+  //       if (controller.info == null) {
+  //         return _buildNoMusic();
+  //       }
+  //       if (controller.lyrics == null) {
+  //         return _buildNoResults(controller);
+  //       }
+  //     } else {
+  //       return _buildAccessRequired(context, controller);
+  //     }
+  //   }
 
-    return SizedBox.shrink();
-  }
+  //   return SizedBox.shrink();
+  // }
 
   Widget _buildNoMusic() => const Column(
     mainAxisAlignment: MainAxisAlignment.center,
@@ -300,25 +295,4 @@ class _HomePageState extends State<HomePage> {
       ],
     );
   }
-
-  Widget _buildNoResults(MusicController controller) => Column(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      const Icon(Icons.search_off, size: 80, color: Colors.grey),
-      const SizedBox(height: 16),
-      const Text(
-        'Not Found',
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-      ),
-      const SizedBox(height: 8),
-      TextButton(
-        onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (c) => LyricsEditor(track: LyricsTrack.empty()),
-          ),
-        ),
-        child: const Text("Add New"),
-      ),
-    ],
-  );
 }

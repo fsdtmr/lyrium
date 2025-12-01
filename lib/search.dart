@@ -1,5 +1,6 @@
 import 'package:lyrium/api.dart';
 import 'package:lyrium/controller.dart';
+import 'package:lyrium/editor.dart';
 import 'package:lyrium/models.dart';
 import 'package:flutter/material.dart';
 import 'package:lyrium/datahelper.dart';
@@ -9,27 +10,20 @@ import 'package:provider/provider.dart';
 
 enum SearchSource { global, local, now, recent }
 
-var lastresults = <LyricsTrack>[];
-var lastquery = "";
-
 class QuickSearch extends StatefulWidget {
   final Function(LyricsTrack, bool)? onResultSelected;
   final TrackInfo? initailQuery;
 
-  final Function(BuildContext) emptyResults;
-
-  const QuickSearch({
-    super.key,
-    this.onResultSelected,
-    this.initailQuery,
-    required this.emptyResults,
-  });
+  const QuickSearch({super.key, this.onResultSelected, this.initailQuery});
 
   @override
   State<QuickSearch> createState() => _QuickSearchState();
 }
 
 class _QuickSearchState extends State<QuickSearch> {
+  static var lastquery = "";
+  static var lastresults = <LyricsTrack>[];
+  static var setofquery = Set<String>();
   final TextEditingController _controller = TextEditingController();
   List<LyricsTrack> _results = [];
   bool _loading = false;
@@ -62,8 +56,8 @@ class _QuickSearchState extends State<QuickSearch> {
     });
   }
 
+  String get query => _controller.text.trim();
   Future<void> _search() async {
-    final query = _controller.text.trim();
     if (query.isEmpty && _mode != SearchSource.local) return;
     setState(() {
       _loading = true;
@@ -111,67 +105,25 @@ class _QuickSearchState extends State<QuickSearch> {
     return Scaffold(
       body: SafeArea(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             DefaultHeader(mode: true),
-            Card(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              elevation: 3,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 14,
-                  horizontal: 12,
-                ),
-                child: Row(
-                  children: [
-                    // const Icon(Icons.search, color: Colors.indigo, size: 26),
-                    // const SizedBox(width: 12),
-                    Expanded(
-                      child: TextField(
-                        controller: _controller,
-                        textInputAction: TextInputAction.search,
-                        onChanged: (_) => repriotirize(),
-                        onSubmitted: (_) => _search(),
-                        decoration: InputDecoration(
-                          hintText: 'Search...', //, artists, or lyrics',
-                          border: InputBorder.none,
-                          isDense: true,
-                        ),
-                      ),
-                    ),
-                    // Opacity(
-                    //   opacity: _controller.text.isEmpty ? 0 : 1,
-                    //   child: IconButton(
-                    //     onPressed: _controller.clear,
-                    //     icon: const Icon(Icons.close, size: 20),
-                    //     tooltip: 'Clear',
-                    //   ),
-                    // ),
-                    // const SizedBox(width: 6),
-                    // Opacity(
-                    //   opacity: _controller.text.isEmpty ? 0 : 1,
-                    //   child: ElevatedButton(
-                    //     onPressed: _loading ? null : () => _search(),
-                    //     child: SizedBox(
-                    //       width: 50,
-                    //       child: Center(
-                    //         child: _loading
-                    //             ? const SizedBox(
-                    //                 width: 16,
-                    //                 height: 16,
-                    //                 child: CircularProgressIndicator(
-                    //                   strokeWidth: 2,
-                    //                   color: Colors.white,
-                    //                 ),
-                    //               )
-                    //             : const Text('Search'),
-                    //       ),
-                    //     ),
-                      // ),
-                    // ),
-                  ],
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+              child: TextField(
+                autofillHints: setofquery,
+                autofocus: true,
+                maxLines: 4,
+                minLines: 1,
+                controller: _controller,
+                textInputAction: TextInputAction.search,
+                onChanged: (_) => repriotirize(),
+                onSubmitted: (_) => _search(),
+                decoration: InputDecoration(
+                  hintText: 'Search...',
+                  helperText: 'ex. Title - Artist', //, artists, or lyrics',
+                  border: InputBorder.none,
+                  isDense: true,
                 ),
               ),
             ),
@@ -181,7 +133,7 @@ class _QuickSearchState extends State<QuickSearch> {
               child: Wrap(
                 spacing: 8.0,
                 children: [
-                  ChoiceChip(
+                  FilterChip(
                     label: const Text('LRCLIB'),
                     selected: _mode == SearchSource.global,
                     onSelected: (selected) {
@@ -195,7 +147,7 @@ class _QuickSearchState extends State<QuickSearch> {
                     },
                   ),
 
-                  ChoiceChip(
+                  FilterChip(
                     label: const Text('Saved'),
                     selected: _mode == SearchSource.local,
                     onSelected: (selected) {
@@ -222,14 +174,46 @@ class _QuickSearchState extends State<QuickSearch> {
                   ).textTheme.labelSmall?.copyWith(color: Colors.redAccent),
                 ),
               ),
+
             Expanded(
-              child: _results.isEmpty
-                  ? widget.emptyResults(context)
-                  : ResultsListView(songs: _results, query: _controller.text),
+              child: Center(
+                child: query.isEmpty
+                    ? _buildDefaultOptions(context)
+                    : _results.isEmpty
+                    ? _buildNoResults()
+                    : ResultsListView(songs: _results, query: _controller.text),
+              ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildNoResults() {
+    return Consumer<MusicController>(
+      builder: (BuildContext context, MusicController value, Widget? child) {
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.search_off, size: 80, color: Colors.grey),
+            const SizedBox(height: 16),
+            const Text(
+              'Not Found',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (c) => LyricsEditor(track: LyricsTrack.empty()),
+                ),
+              ),
+              child: const Text("Add New"),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -296,6 +280,23 @@ class _QuickSearchState extends State<QuickSearch> {
     //       : 0,
     // );
     setState(() {});
+  }
+
+  _buildDefaultOptions(BuildContext context) {
+    return ListView(
+      children: [
+        ListTile(
+          leading: Icon(Icons.add),
+          title: Text("Create New"),
+          subtitle: Text("Title - Artist"),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (c) => LyricsEditor(track: LyricsTrack.empty()),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 

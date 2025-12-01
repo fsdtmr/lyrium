@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lyrium/models.dart';
 import 'package:lyrium/viewer.dart';
-
 import 'package:pretty_diff_text/pretty_diff_text.dart';
 
 class LyricsEditor extends StatefulWidget {
@@ -24,7 +23,7 @@ class _LyricsEditorState extends State<LyricsEditor> {
   late List<bool> modeSelected;
 
   late String initial;
-  late TrackInfo? info;
+  late TrackInfo info;
   @override
   void initState() {
     super.initState();
@@ -42,138 +41,121 @@ class _LyricsEditorState extends State<LyricsEditor> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(info?.trackName ?? "Not set"),
+        leading: BackButton(
+          onPressed: () async {
+            if (textEditingController.text != initial) {
+              if (!(await showDiscardChangesDialog(context))) {
+                return;
+              }
+              ;
+            }
+
+            Navigator.of(context).pop();
+          },
+        ),
+        title: Text("Editing ${info.trackName} "),
         actions: [
           IconButton(
             onPressed: () {
-              showDialog(
-                context: context,
-                builder: (c) {
-                  return Dialog.fullscreen(
-                    child: Column(
-                      children: [
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: SizedBox(
-                            width: 700,
-                            child: SingleChildScrollView(
-                              child: DiffView(
-                                from: initial,
-                                to: textEditingController.text,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              );
+              opensubmitform(context);
             },
             icon: const Icon(Icons.done),
           ),
         ],
       ),
 
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: SizedBox(
-                    width: 700,
-                    child: Stack(
-                      children: [
-                        switch (modeSelected) {
-                          _lrctextMode => TextField(
-                            minLines: 100,
-                            maxLines: null,
-                            controller: textEditingController,
-                            focusNode: _focusNode,
-                            undoController: _undoController, // ← key line
-                            decoration: const InputDecoration(
-                              border: InputBorder.none,
-                            ),
-                          ),
-                          _plaintextMode => TextField(
-                            minLines: 100,
-                            maxLines: null,
-                            controller: textEditingController,
-                            focusNode: _focusNode,
-                            undoController: _undoController, // ← key line
-                            decoration: const InputDecoration(
-                              border: InputBorder.none,
-                            ),
-                          ),
-
-                          [...] => SizedBox(),
-                        },
-                      ],
+      body: Builder(
+        builder: (context) {
+          return SafeArea(
+            child: Column(
+              children: [
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20),
+                    child: ScrollableArea(
+                      child: TextField(
+                        minLines: 100,
+                        maxLines: null,
+                        controller: textEditingController,
+                        focusNode: _focusNode,
+                        undoController: _undoController, // ← key line
+                        style: TextStyle(fontSize: 22),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
 
-            Row(
-              children: [
-                ToggleButtons(
-                  isSelected: modeSelected,
+                Row(
                   children: [
-                    IconButton(
-                      onPressed: () {
-                        setState(() => modeSelected = _lrctextMode);
-                      },
-                      icon: const Icon(Icons.list_alt),
+                    ToggleButtons(
+                      isSelected: modeSelected,
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            setState(() => modeSelected = _lrctextMode);
+                          },
+                          icon: const Icon(Icons.list_alt),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            setState(() => modeSelected = _plaintextMode);
+                          },
+                          icon: const Icon(Icons.text_fields),
+                        ),
+                      ],
                     ),
-                    IconButton(
-                      onPressed: () {
-                        setState(() => modeSelected = _plaintextMode);
+
+                    const Spacer(),
+
+                    ValueListenableBuilder<UndoHistoryValue>(
+                      valueListenable: _undoController,
+                      builder: (context, value, _) {
+                        return Row(
+                          children: [
+                            IconButton(
+                              isSelected: value.canUndo,
+                              onPressed: () async {
+                                if (!value.canUndo) {
+                                  textEditingController.text = initial;
+                                  final confirmed =
+                                      await showDiscardChangesDialog(context);
+                                  if (confirmed) {}
+                                } else {
+                                  _undoController.undo();
+                                }
+                              },
+                              icon: Icon(Icons.undo),
+                            ),
+                            IconButton(
+                              isSelected: value.canRedo,
+                              onPressed: () => _undoController.redo(),
+                              icon: Icon(Icons.redo),
+                            ),
+                          ],
+                        );
                       },
-                      icon: const Icon(Icons.text_fields),
                     ),
                   ],
                 ),
-
-                const Spacer(),
-
-                ValueListenableBuilder<UndoHistoryValue>(
-                  valueListenable: _undoController,
-                  builder: (context, value, _) {
-                    return Row(
-                      children: [
-                        IconButton(
-                          isSelected: value.canUndo,
-                          onPressed: () async {
-                            if (!value.canUndo) {
-                              textEditingController.text = initial;
-                              final confirmed = await showDiscardChangesDialog(
-                                context,
-                              );
-                              if (confirmed) {}
-                            } else {
-                              _undoController.undo();
-                            }
-                          },
-                          icon: Icon(Icons.undo),
-                        ),
-                        IconButton(
-                          isSelected: value.canRedo,
-                          onPressed: () => _undoController.redo(),
-                          icon: Icon(Icons.redo),
-                        ),
-                      ],
-                    );
-                  },
-                ),
               ],
             ),
-          ],
-        ),
+          );
+        },
       ),
+    );
+  }
+
+  Future<dynamic> opensubmitform(BuildContext context) {
+    return showDialog(
+      context: context,
+      builder: (c) {
+        return Dialog.fullscreen(
+          child: ArtworkForm(from: initial, to: textEditingController.text),
+        );
+      },
     );
   }
 
@@ -182,17 +164,15 @@ class _LyricsEditorState extends State<LyricsEditor> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Discard changes?'),
-        content: const Text(
-          'You have unsaved changes. Do you really want to discard them?',
-        ),
+        content: const Text('You are about to discard unsaved changes.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Discard'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
           ),
         ],
       ),
@@ -202,20 +182,96 @@ class _LyricsEditorState extends State<LyricsEditor> {
   }
 }
 
-class DiffView extends StatelessWidget {
+class ArtworkForm extends StatefulWidget {
   final String from;
   final String to;
 
-  const DiffView({super.key, required this.from, required this.to});
+  const ArtworkForm({super.key, required this.from, required this.to});
+  @override
+  _ArtworkFormState createState() => _ArtworkFormState();
+}
+
+class _ArtworkFormState extends State<ArtworkForm> {
+  final _formKey = GlobalKey<FormState>();
+
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _artistController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
-    return PrettyDiffText(
-      // defaultTextStyle:
-      //     Theme.of(context).textTheme.bodyLarge ??
-      //     const TextStyle(color: Colors.black),
-      oldText: from,
-      newText: to,
+    return Scaffold(
+      appBar: AppBar(title: Text("Artwork Form")),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextFormField(
+                controller: _titleController,
+                decoration: InputDecoration(labelText: "Title"),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return "Please enter a title";
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 16),
+
+              TextFormField(
+                controller: _artistController,
+                decoration: InputDecoration(labelText: "Artist"),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return "Please enter an artist name";
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 16),
+
+              Expanded(
+                child: ScrollableArea(
+                  child: PrettyDiffText(
+                    defaultTextStyle: TextStyle(fontSize: 32),
+                    oldText: widget.from,
+                    newText: widget.to,
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 24),
+
+              TextButton(
+                onPressed: _formKey.currentState?.validate() ?? false
+                    ? () {}
+                    : null,
+                child: Text("Submit"),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class ScrollableArea extends StatelessWidget {
+  final Widget child;
+  const ScrollableArea({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SizedBox(
+          width: MediaQuery.of(context).size.width + 300,
+          child: child,
+        ),
+      ),
     );
   }
 }
