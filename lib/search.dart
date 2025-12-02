@@ -23,7 +23,7 @@ class QuickSearch extends StatefulWidget {
 class _QuickSearchState extends State<QuickSearch> {
   static var lastquery = "";
   static var lastresults = <LyricsTrack>[];
-  static var setofquery = <String>{};
+  static var queryhistory = <String>{};
   final TextEditingController _controller = TextEditingController();
   List<LyricsTrack>? _results;
   bool _loading = false;
@@ -67,7 +67,7 @@ class _QuickSearchState extends State<QuickSearch> {
       _error = null;
     });
 
-    setofquery.add(query);
+    queryhistory.add(query);
     try {
       if (_mode == SearchSource.global) {
         await _searchLRCLIB();
@@ -120,7 +120,7 @@ class _QuickSearchState extends State<QuickSearch> {
               padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
               child: TextField(
                 style: TextStyle(fontSize: 20),
-                autofillHints: setofquery,
+                autofillHints: queryhistory,
                 autofocus: true,
                 maxLines: 4,
                 minLines: 1,
@@ -191,13 +191,16 @@ class _QuickSearchState extends State<QuickSearch> {
 
             Expanded(
               child: Center(
-                child: query.isEmpty
+                child: query.isEmpty && (_results?.isEmpty ?? false)
                     ? _buildNoResults('', Icons.search)
                     : _results?.isEmpty ?? true
                     ? _buildNoResults('Not Found', Icons.search_off)
                     : ResultsListView(
                         songs: _results!,
                         query: _controller.text,
+                        onParentChanged: () {
+                          _search();
+                        },
                       ),
               ),
             ),
@@ -330,8 +333,13 @@ class DefaultHeader extends StatelessWidget {
 class ResultsListView extends StatelessWidget {
   final List<LyricsTrack> songs;
   final String query;
-
-  const ResultsListView({super.key, required this.songs, required this.query});
+  final dynamic onParentChanged;
+  const ResultsListView({
+    super.key,
+    required this.songs,
+    required this.query,
+    this.onParentChanged,
+  });
 
   Widget _highlight(String text, String query, {TextStyle? style}) {
     if (query.isEmpty) return Text(text, style: style);
@@ -395,14 +403,7 @@ class ResultsListView extends StatelessWidget {
             horizontal: 14,
             vertical: 10,
           ),
-          // leading: CircleAvatar(
-          //   radius: 26,
-          //   backgroundColor: Colors.indigo.shade50,
-          //   child: Text(
-          //     _initials(title, artist),
-          //     style: const TextStyle(fontWeight: FontWeight.bold),
-          //   ),
-          // ),
+          leading: CircleAvatar(radius: 26, child: Icon(Icons.album_outlined)),
           title: _highlight(
             title,
             query,
@@ -436,7 +437,7 @@ class ResultsListView extends StatelessWidget {
                     )
                     .toList(),
           ),
-          onTap: () => showLyricsSheet(context, item),
+          onTap: () => showLyricsSheet(context, item, onParentChanged),
         );
       },
     );

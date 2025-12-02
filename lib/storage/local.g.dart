@@ -21,6 +21,18 @@ class $LyricsTable extends Lyrics with TableInfo<$LyricsTable, Lyric> {
       'PRIMARY KEY AUTOINCREMENT',
     ),
   );
+  static const VerificationMeta _namespaceMeta = const VerificationMeta(
+    'namespace',
+  );
+  @override
+  late final GeneratedColumn<String> namespace = GeneratedColumn<String>(
+    'namespace',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: Constant("originid"),
+  );
   static const VerificationMeta _originIdMeta = const VerificationMeta(
     'originId',
   );
@@ -144,6 +156,7 @@ class $LyricsTable extends Lyrics with TableInfo<$LyricsTable, Lyric> {
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    namespace,
     originId,
     interlinked,
     language,
@@ -170,6 +183,12 @@ class $LyricsTable extends Lyrics with TableInfo<$LyricsTable, Lyric> {
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('namespace')) {
+      context.handle(
+        _namespaceMeta,
+        namespace.isAcceptableOrUnknown(data['namespace']!, _namespaceMeta),
+      );
     }
     if (data.containsKey('origin_id')) {
       context.handle(
@@ -266,6 +285,10 @@ class $LyricsTable extends Lyrics with TableInfo<$LyricsTable, Lyric> {
         DriftSqlType.int,
         data['${effectivePrefix}id'],
       )!,
+      namespace: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}namespace'],
+      )!,
       originId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}origin_id'],
@@ -321,6 +344,7 @@ class $LyricsTable extends Lyrics with TableInfo<$LyricsTable, Lyric> {
 
 class Lyric extends DataClass implements Insertable<Lyric> {
   final int id;
+  final String namespace;
   final String? originId;
   final int? interlinked;
   final int? language;
@@ -334,6 +358,7 @@ class Lyric extends DataClass implements Insertable<Lyric> {
   final String? attachments;
   const Lyric({
     required this.id,
+    required this.namespace,
     this.originId,
     this.interlinked,
     this.language,
@@ -350,6 +375,7 @@ class Lyric extends DataClass implements Insertable<Lyric> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
+    map['namespace'] = Variable<String>(namespace);
     if (!nullToAbsent || originId != null) {
       map['origin_id'] = Variable<String>(originId);
     }
@@ -383,6 +409,7 @@ class Lyric extends DataClass implements Insertable<Lyric> {
   LyricsCompanion toCompanion(bool nullToAbsent) {
     return LyricsCompanion(
       id: Value(id),
+      namespace: Value(namespace),
       originId: originId == null && nullToAbsent
           ? const Value.absent()
           : Value(originId),
@@ -420,6 +447,7 @@ class Lyric extends DataClass implements Insertable<Lyric> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Lyric(
       id: serializer.fromJson<int>(json['id']),
+      namespace: serializer.fromJson<String>(json['namespace']),
       originId: serializer.fromJson<String?>(json['originId']),
       interlinked: serializer.fromJson<int?>(json['interlinked']),
       language: serializer.fromJson<int?>(json['language']),
@@ -438,6 +466,7 @@ class Lyric extends DataClass implements Insertable<Lyric> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
+      'namespace': serializer.toJson<String>(namespace),
       'originId': serializer.toJson<String?>(originId),
       'interlinked': serializer.toJson<int?>(interlinked),
       'language': serializer.toJson<int?>(language),
@@ -454,6 +483,7 @@ class Lyric extends DataClass implements Insertable<Lyric> {
 
   Lyric copyWith({
     int? id,
+    String? namespace,
     Value<String?> originId = const Value.absent(),
     Value<int?> interlinked = const Value.absent(),
     Value<int?> language = const Value.absent(),
@@ -467,6 +497,7 @@ class Lyric extends DataClass implements Insertable<Lyric> {
     Value<String?> attachments = const Value.absent(),
   }) => Lyric(
     id: id ?? this.id,
+    namespace: namespace ?? this.namespace,
     originId: originId.present ? originId.value : this.originId,
     interlinked: interlinked.present ? interlinked.value : this.interlinked,
     language: language.present ? language.value : this.language,
@@ -482,6 +513,7 @@ class Lyric extends DataClass implements Insertable<Lyric> {
   Lyric copyWithCompanion(LyricsCompanion data) {
     return Lyric(
       id: data.id.present ? data.id.value : this.id,
+      namespace: data.namespace.present ? data.namespace.value : this.namespace,
       originId: data.originId.present ? data.originId.value : this.originId,
       interlinked: data.interlinked.present
           ? data.interlinked.value
@@ -508,6 +540,7 @@ class Lyric extends DataClass implements Insertable<Lyric> {
   String toString() {
     return (StringBuffer('Lyric(')
           ..write('id: $id, ')
+          ..write('namespace: $namespace, ')
           ..write('originId: $originId, ')
           ..write('interlinked: $interlinked, ')
           ..write('language: $language, ')
@@ -526,6 +559,7 @@ class Lyric extends DataClass implements Insertable<Lyric> {
   @override
   int get hashCode => Object.hash(
     id,
+    namespace,
     originId,
     interlinked,
     language,
@@ -543,6 +577,7 @@ class Lyric extends DataClass implements Insertable<Lyric> {
       identical(this, other) ||
       (other is Lyric &&
           other.id == this.id &&
+          other.namespace == this.namespace &&
           other.originId == this.originId &&
           other.interlinked == this.interlinked &&
           other.language == this.language &&
@@ -558,6 +593,7 @@ class Lyric extends DataClass implements Insertable<Lyric> {
 
 class LyricsCompanion extends UpdateCompanion<Lyric> {
   final Value<int> id;
+  final Value<String> namespace;
   final Value<String?> originId;
   final Value<int?> interlinked;
   final Value<int?> language;
@@ -571,6 +607,7 @@ class LyricsCompanion extends UpdateCompanion<Lyric> {
   final Value<String?> attachments;
   const LyricsCompanion({
     this.id = const Value.absent(),
+    this.namespace = const Value.absent(),
     this.originId = const Value.absent(),
     this.interlinked = const Value.absent(),
     this.language = const Value.absent(),
@@ -585,6 +622,7 @@ class LyricsCompanion extends UpdateCompanion<Lyric> {
   });
   LyricsCompanion.insert({
     this.id = const Value.absent(),
+    this.namespace = const Value.absent(),
     this.originId = const Value.absent(),
     this.interlinked = const Value.absent(),
     this.language = const Value.absent(),
@@ -600,6 +638,7 @@ class LyricsCompanion extends UpdateCompanion<Lyric> {
        duration = Value(duration);
   static Insertable<Lyric> custom({
     Expression<int>? id,
+    Expression<String>? namespace,
     Expression<String>? originId,
     Expression<int>? interlinked,
     Expression<int>? language,
@@ -614,6 +653,7 @@ class LyricsCompanion extends UpdateCompanion<Lyric> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (namespace != null) 'namespace': namespace,
       if (originId != null) 'origin_id': originId,
       if (interlinked != null) 'interlinked': interlinked,
       if (language != null) 'language': language,
@@ -630,6 +670,7 @@ class LyricsCompanion extends UpdateCompanion<Lyric> {
 
   LyricsCompanion copyWith({
     Value<int>? id,
+    Value<String>? namespace,
     Value<String?>? originId,
     Value<int?>? interlinked,
     Value<int?>? language,
@@ -644,6 +685,7 @@ class LyricsCompanion extends UpdateCompanion<Lyric> {
   }) {
     return LyricsCompanion(
       id: id ?? this.id,
+      namespace: namespace ?? this.namespace,
       originId: originId ?? this.originId,
       interlinked: interlinked ?? this.interlinked,
       language: language ?? this.language,
@@ -663,6 +705,9 @@ class LyricsCompanion extends UpdateCompanion<Lyric> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<int>(id.value);
+    }
+    if (namespace.present) {
+      map['namespace'] = Variable<String>(namespace.value);
     }
     if (originId.present) {
       map['origin_id'] = Variable<String>(originId.value);
@@ -704,6 +749,7 @@ class LyricsCompanion extends UpdateCompanion<Lyric> {
   String toString() {
     return (StringBuffer('LyricsCompanion(')
           ..write('id: $id, ')
+          ..write('namespace: $namespace, ')
           ..write('originId: $originId, ')
           ..write('interlinked: $interlinked, ')
           ..write('language: $language, ')
@@ -734,6 +780,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
 typedef $$LyricsTableCreateCompanionBuilder =
     LyricsCompanion Function({
       Value<int> id,
+      Value<String> namespace,
       Value<String?> originId,
       Value<int?> interlinked,
       Value<int?> language,
@@ -749,6 +796,7 @@ typedef $$LyricsTableCreateCompanionBuilder =
 typedef $$LyricsTableUpdateCompanionBuilder =
     LyricsCompanion Function({
       Value<int> id,
+      Value<String> namespace,
       Value<String?> originId,
       Value<int?> interlinked,
       Value<int?> language,
@@ -795,6 +843,11 @@ class $$LyricsTableFilterComposer
   });
   ColumnFilters<int> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get namespace => $composableBuilder(
+    column: $table.namespace,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -886,6 +939,11 @@ class $$LyricsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get namespace => $composableBuilder(
+    column: $table.namespace,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get originId => $composableBuilder(
     column: $table.originId,
     builder: (column) => ColumnOrderings(column),
@@ -971,6 +1029,9 @@ class $$LyricsTableAnnotationComposer
   });
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get namespace =>
+      $composableBuilder(column: $table.namespace, builder: (column) => column);
 
   GeneratedColumn<String> get originId =>
       $composableBuilder(column: $table.originId, builder: (column) => column);
@@ -1061,6 +1122,7 @@ class $$LyricsTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
+                Value<String> namespace = const Value.absent(),
                 Value<String?> originId = const Value.absent(),
                 Value<int?> interlinked = const Value.absent(),
                 Value<int?> language = const Value.absent(),
@@ -1074,6 +1136,7 @@ class $$LyricsTableTableManager
                 Value<String?> attachments = const Value.absent(),
               }) => LyricsCompanion(
                 id: id,
+                namespace: namespace,
                 originId: originId,
                 interlinked: interlinked,
                 language: language,
@@ -1089,6 +1152,7 @@ class $$LyricsTableTableManager
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
+                Value<String> namespace = const Value.absent(),
                 Value<String?> originId = const Value.absent(),
                 Value<int?> interlinked = const Value.absent(),
                 Value<int?> language = const Value.absent(),
@@ -1102,6 +1166,7 @@ class $$LyricsTableTableManager
                 Value<String?> attachments = const Value.absent(),
               }) => LyricsCompanion.insert(
                 id: id,
+                namespace: namespace,
                 originId: originId,
                 interlinked: interlinked,
                 language: language,

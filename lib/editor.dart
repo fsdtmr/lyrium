@@ -3,6 +3,7 @@ import 'package:lyrium/controller.dart';
 import 'package:lyrium/models.dart';
 import 'package:lyrium/utils/duration.dart';
 import 'package:lyrium/utils/lrc.dart';
+import 'package:lyrium/utils/string.dart';
 import 'package:lyrium/viewer.dart';
 import 'package:lyrium/widgets/scrollable_area.dart';
 import 'package:lyrium/widgets/submit_form.dart';
@@ -203,9 +204,10 @@ class _LyricsEditorState extends State<LyricsEditor> {
   }
 
   void switchtoPlain() {
-    secondarytextEditingController.text = toLRCLineList(
-      textEditingController.text,
-    ).toPlainText();
+    final _plain = toLRCLineList(textEditingController.text).toPlainText();
+    secondarytextEditingController.text = _plain.isValid
+        ? _plain
+        : textEditingController.text;
     setState(() => modeSelected = _plaintextMode);
   }
 
