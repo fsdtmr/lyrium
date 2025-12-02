@@ -23,6 +23,7 @@ class DataHelper {
             duration: track.duration ?? extra?.durationseconds ?? 0,
             instrumental: Value(track.instrumental == true),
             lyrics: Value(track.syncedLyrics ?? track.plainLyrics ?? ''),
+            namespace: Value(track.namespace),
           ),
         );
     return lyricId;
@@ -83,10 +84,8 @@ class DataHelper {
     return updated > 0;
   }
 
-  Future delete(LyricsTrack track) async {
-    return db.delete(db.lyrics)
-      ..where((t) => t.id.equals(track.id))
-      ..go();
+  Future<int> delete(LyricsTrack track) async {
+    return (db.delete(db.lyrics)..where((t) => t.id.equals(track.id))).go();
   }
 
   /// Close database connection
@@ -101,6 +100,7 @@ class DataHelper {
             artist: Value(artist),
             duration: 0.0,
             lyrics: Value(lyrics),
+            namespace: Value("Draft"),
           ),
         )
         .then((c) {

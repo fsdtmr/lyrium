@@ -4,7 +4,7 @@ import 'package:lyrium/datahelper.dart';
 import 'package:lyrium/models.dart';
 import 'package:provider/provider.dart';
 
-void showLyricsSheet(BuildContext context, LyricsTrack song) {
+void showLyricsSheet(BuildContext context, LyricsTrack song, onParentChanged) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -73,10 +73,12 @@ void showLyricsSheet(BuildContext context, LyricsTrack song) {
                     IconButton(
                       onPressed: () =>
                           DataHelper.instance.delete(song).then((c) {
-                            if (c == song.id) {
+                            if (c != 0) {
+                              Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('Deleted')),
                               );
+                              onParentChanged();
                             }
                           }),
                       icon: const Icon(Icons.delete),

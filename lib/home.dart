@@ -63,6 +63,12 @@ class _HomePageState extends State<HomePage> {
 
   AppBar buildLyricsAppBar(MusicController ctrl) {
     return AppBar(
+      actions: [
+        IconButton(
+          onPressed: () => ctrl.setShowTrackMode(false),
+          icon: RotatedBox(quarterTurns: 1, child: Icon(Icons.chevron_right)),
+        ),
+      ],
       leading: FutureBuilder(
         future: ctrl.image,
         builder: (c, s) => Padding(
@@ -74,27 +80,16 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
-      title: Row(
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                ctrl.info?.trackName ?? ctrl.lyrics?.trackName ?? "No Track",
-                overflow: TextOverflow.ellipsis,
-              ),
-              Text(
-                ctrl.info?.artistName ?? ctrl.lyrics?.trackName ?? "No Artist",
-                style: const TextStyle(fontSize: 12),
-              ),
-            ],
+          Text(
+            ctrl.info?.trackName ?? ctrl.lyrics?.trackName ?? "No Track",
+            overflow: TextOverflow.ellipsis,
           ),
-
-          Spacer(),
-
-          IconButton(
-            onPressed: () => ctrl.setShowTrackMode(false),
-            icon: RotatedBox(quarterTurns: 1, child: Icon(Icons.chevron_right)),
+          Text(
+            ctrl.info?.artistName ?? ctrl.lyrics?.trackName ?? "No Artist",
+            style: const TextStyle(fontSize: 12),
           ),
         ],
       ),
@@ -292,10 +287,15 @@ class _HomePageState extends State<HomePage> {
     return Drawer(
       child: ListView(
         children: [
+          // ListTile(
+          //   onTap: () => {},
+          //   leading: Icon(Icons.settings),
+          //   title: Text("Settings"),
+          // ),
           ListTile(
-            onTap: () => {},
-            leading: Icon(Icons.settings),
-            title: Text("Settings"),
+            onTap: () => showAboutDialog(context: context),
+            leading: Icon(Icons.info),
+            title: Text("About"),
           ),
         ],
       ),

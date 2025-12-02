@@ -5,7 +5,7 @@ part 'local.g.dart';
 
 class Lyrics extends Table {
   IntColumn get id => integer().autoIncrement()();
-  TextColumn get namespace => text()();
+  TextColumn get namespace => text().withDefault(Constant("originid"))();
   TextColumn get originId => text().nullable()();
   IntColumn get interlinked => integer().nullable().references(Lyrics, #id)();
   IntColumn get language => integer().nullable()();
@@ -26,5 +26,14 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase({this.name = "lyrium"}) : super(openConnection(name));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (migrator, from, to) async {
+      if (from == 1 && to == 2) {
+        await migrator.addColumn(lyrics, lyrics.namespace);
+      }
+    },
+  );
 }
