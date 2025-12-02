@@ -37,7 +37,7 @@ class _SubmitFormState extends State<SubmitForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Artwork Form")),
+      appBar: AppBar(title: Text("Save")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -93,6 +93,13 @@ class _SubmitFormState extends State<SubmitForm> {
                               widget.draft.newText,
                             )
                             .then((c) {
+                              if (c.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Saving Failed'),
+                                  ),
+                                );
+                              }
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('Saved')),
                               );

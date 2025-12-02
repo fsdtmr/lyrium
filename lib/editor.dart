@@ -27,7 +27,7 @@ class _LyricsEditorState extends State<LyricsEditor> {
 
   static const _plaintextMode = [false, true];
   static const _lrctextMode = [true, false];
-
+  TextStyle editorTextStyle = TextStyle(fontSize: 22);
   late List<bool> modeSelected;
 
   late String initial;
@@ -115,7 +115,7 @@ class _LyricsEditorState extends State<LyricsEditor> {
                           controller: textEditingController,
                           focusNode: _focusNode,
                           undoController: _undoController,
-                          style: TextStyle(fontSize: 22),
+                          style: editorTextStyle,
                           decoration: InputDecoration(
                             hintText: "[mm:ss.mss] La La La....",
                             border: InputBorder.none,
@@ -129,7 +129,7 @@ class _LyricsEditorState extends State<LyricsEditor> {
                           controller: secondarytextEditingController,
                           undoController: _secondaryUndoController,
                           focusNode: _focusNode,
-                          style: TextStyle(fontSize: 22),
+                          style: editorTextStyle,
                           decoration: InputDecoration(
                             hintText: "La La La....",
                             border: InputBorder.none,
@@ -159,7 +159,26 @@ class _LyricsEditorState extends State<LyricsEditor> {
                       },
                       icon: const Icon(Icons.text_fields),
                     ),
+                    IconButton(
+                      onPressed: () {
+                        editorTextStyle = editorTextStyle.copyWith(
+                          fontSize: editorTextStyle.fontSize! - 1,
+                        );
 
+                        setState(() {});
+                      },
+                      icon: Icon(Icons.text_decrease),
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          editorTextStyle = editorTextStyle.copyWith(
+                            fontSize: editorTextStyle.fontSize! + 1,
+                          );
+                        });
+                      },
+                      icon: Icon(Icons.text_increase),
+                    ),
                     const Spacer(),
 
                     TextButton.icon(
@@ -191,10 +210,12 @@ class _LyricsEditorState extends State<LyricsEditor> {
   }
 
   void switchtoLRC() {
-    textEditingController.text = remapPlainText(
-      textEditingController.text,
-      secondarytextEditingController.text,
-    );
+    if (secondarytextEditingController.text != "") {
+      textEditingController.text = remapPlainText(
+        textEditingController.text,
+        secondarytextEditingController.text,
+      );
+    }
     setState(() => modeSelected = _lrctextMode);
   }
 

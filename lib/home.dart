@@ -43,93 +43,7 @@ class _HomePageState extends State<HomePage> {
         if (ctrl.showTrack) {
           return Scaffold(
             drawer: buildDrawer(),
-            appBar: ctrl.lyrics == null
-                ? AppBar(
-                    leading: FutureBuilder(
-                      future: ctrl.image,
-                      builder: (c, s) => Padding(
-                        padding: EdgeInsetsGeometry.all(8.0),
-                        child: SizedBox(
-                          width: 30,
-                          height: 30,
-                          child: s.data ?? Icon(Icons.music_note),
-                        ),
-                      ),
-                    ),
-                    title: Row(
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              ctrl.info?.trackName ??
-                                  ctrl.lyrics?.trackName ??
-                                  "No Track",
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Text(
-                              ctrl.info?.artistName ??
-                                  ctrl.lyrics?.trackName ??
-                                  "No Artist",
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                          ],
-                        ),
-
-                        Spacer(),
-
-                        IconButton(
-                          onPressed: () => ctrl.setShowTrackMode(false),
-                          icon: RotatedBox(
-                            quarterTurns: 1,
-                            child: Icon(Icons.chevron_right),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : AppBar(
-                    leading: FutureBuilder(
-                      future: ctrl.image,
-                      builder: (c, s) => Padding(
-                        padding: EdgeInsetsGeometry.all(8.0),
-                        child: SizedBox(
-                          width: 30,
-                          height: 30,
-                          child: s.data ?? Icon(Icons.music_note),
-                        ),
-                      ),
-                    ),
-                    title: ctrl.info == null && ctrl.lyrics == null
-                        ? DefaultHeader(mode: false)
-                        : GestureDetector(
-                            onTap: () {
-                              ctrl.setShowTrackMode(false);
-                            },
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Text(
-                                      ctrl.info?.trackName ??
-                                          ctrl.lyrics?.trackName ??
-                                          "Track",
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                                Text(
-                                  ctrl.info?.artistName ??
-                                      ctrl.lyrics?.trackName ??
-                                      "Artist",
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                              ],
-                            ),
-                          ),
-                    bottom: buildnotificationpr(ctrl),
-                  ),
+            appBar: buildLyricsAppBar(ctrl),
             body: buildcontent(ctrl),
           );
         } else {
@@ -144,6 +58,46 @@ class _HomePageState extends State<HomePage> {
           );
         }
       },
+    );
+  }
+
+  AppBar buildLyricsAppBar(MusicController ctrl) {
+    return AppBar(
+      leading: FutureBuilder(
+        future: ctrl.image,
+        builder: (c, s) => Padding(
+          padding: EdgeInsetsGeometry.all(8.0),
+          child: SizedBox(
+            width: 30,
+            height: 30,
+            child: s.data ?? Icon(Icons.music_note),
+          ),
+        ),
+      ),
+      title: Row(
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                ctrl.info?.trackName ?? ctrl.lyrics?.trackName ?? "No Track",
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                ctrl.info?.artistName ?? ctrl.lyrics?.trackName ?? "No Artist",
+                style: const TextStyle(fontSize: 12),
+              ),
+            ],
+          ),
+
+          Spacer(),
+
+          IconButton(
+            onPressed: () => ctrl.setShowTrackMode(false),
+            icon: RotatedBox(quarterTurns: 1, child: Icon(Icons.chevron_right)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -295,23 +249,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // buildUserSuggesions(BuildContext context, MusicController controller) {
-  //   if (controller.isReady) {
-  //     if (controller.hasAccess) {
-  //       if (controller.info == null) {
-  //         return _buildNoMusic();
-  //       }
-  //       if (controller.lyrics == null) {
-  //         return _buildNoResults(controller);
-  //       }
-  //     } else {
-  //       return _buildAccessRequired(context, controller);
-  //     }
-  //   }
-
-  //   return SizedBox.shrink();
-  // }
-
   Widget _buildNoMusic() => const Column(
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
@@ -340,7 +277,9 @@ class _HomePageState extends State<HomePage> {
         const SizedBox(height: 16),
         const Text("Enable Notification Access?"),
         ElevatedButton(
-          onPressed: ctrl.openNotificationAccessSettings,
+          onPressed: () => ctrl.openNotificationAccessSettings().then((c) {
+            ctrl.rebuildUntil(() => ctrl.hasAccess);
+          }),
           child: const Text("Grant Access"),
         ),
       ],

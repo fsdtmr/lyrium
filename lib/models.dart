@@ -1,5 +1,4 @@
 import 'package:lyrium/storage/local.dart';
-import 'package:lyrium/utils/string.dart';
 
 class TrackInfo {
   final String artistName;
@@ -13,39 +12,6 @@ class TrackInfo {
     required this.albumName,
     required this.durationseconds,
   });
-
-  static List<String> advertisement = ["Advertisement", "Sponsored"];
-  static List<String> clearArtists = [
-    "•",
-    "Recommended for you",
-    "Unknown Artist",
-  ];
-
-  static List<String> replacewithSpace = ["/"];
-  TrackInfo clearTemplates() {
-    String clearedTrack = trackName;
-    String clearedArtist = artistName;
-    String clearedAlbum = albumName;
-
-    for (var e in advertisement) {
-      clearedTrack = replaceFirstCaseInsensitive(clearedTrack, e).trim();
-    }
-
-    for (var e in clearArtists) {
-      clearedArtist = replaceFirstCaseInsensitive(clearedArtist, e).trim();
-    }
-
-    for (var e in replacewithSpace) {
-      clearedArtist = replaceFirstCaseInsensitive(clearedArtist, e, " ").trim();
-    }
-
-    return TrackInfo(
-      artistName: clearedArtist,
-      trackName: clearedTrack,
-      albumName: clearedAlbum,
-      durationseconds: durationseconds,
-    );
-  }
 }
 
 class LyricsTrack {

@@ -8,7 +8,7 @@ class LRCLine {
 
 const musicNoteString = "♫";
 List<LRCLine> toLRCLineList(String lrcString, [String gapstring = ""]) {
-  final regex = RegExp(r'\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\](.*)');
+  final regex = RegExp(r'\[(\d{2}):(\d{2})(?:\.(\d{2}))?\](.*)');
   final lines = lrcString
       .split('\n')
       .where((line) => line.isNotEmpty)
@@ -18,7 +18,7 @@ List<LRCLine> toLRCLineList(String lrcString, [String gapstring = ""]) {
           final minutes = int.parse(match.group(1)!);
           final seconds = int.parse(match.group(2)!);
           final millis = match.group(3) != null
-              ? int.parse(match.group(3)!.padRight(3, '0'))
+              ? int.parse(match.group(3)!.padRight(2, '0'))
               : 0;
           var text = match.group(4)!.trim();
 
@@ -68,15 +68,16 @@ extension LRCSpans on List<LRCLine> {
     List<LRCLine> lines = [];
     Duration lastduration = Duration.zero;
     for (var i = 0; i < newPlaintext.length; i++) {
+      final npt = newPlaintext[i].trim();
       if (length - 1 < i) {
         lines.add(
           LRCLine(
             timestamp: lastduration + Duration(milliseconds: i),
-            text: newPlaintext[i],
+            text: npt,
           ),
         );
       } else {
-        lines.add(LRCLine(timestamp: this[i].timestamp, text: newPlaintext[i]));
+        lines.add(LRCLine(timestamp: this[i].timestamp, text: npt));
       }
     }
 
@@ -85,12 +86,11 @@ extension LRCSpans on List<LRCLine> {
 
   String toLRCString() {
     String two(int n) => n.toString().padLeft(2, '0');
-    String three(int n) => n.toString().padLeft(3, '0');
     return map((l) {
       final m = l.timestamp.inMinutes;
       final s = l.timestamp.inSeconds % 60;
-      final ms = l.timestamp.inMilliseconds % 1000;
-      return '[${two(m)}:${two(s)}.${three(ms)}]${l.text}';
+      final ms = l.timestamp.inMilliseconds % 100;
+      return '[${two(m)}:${two(s)}.${two(ms)}] ${l.text}';
     }).join('\n');
   }
 

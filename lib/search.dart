@@ -4,6 +4,7 @@ import 'package:lyrium/models.dart';
 import 'package:flutter/material.dart';
 import 'package:lyrium/datahelper.dart';
 import 'package:lyrium/utils/duration.dart';
+import 'package:lyrium/utils/search_terms.dart';
 import 'package:lyrium/widgets/lyrics_sheet.dart';
 import 'package:provider/provider.dart';
 
@@ -44,6 +45,7 @@ class _QuickSearchState extends State<QuickSearch> {
         ? "${initailQuery?.trackName} - ${initailQuery?.artistName}"
         : lastquery;
     _results = lastresults;
+
     _search();
     super.initState();
   }
@@ -68,22 +70,7 @@ class _QuickSearchState extends State<QuickSearch> {
     setofquery.add(query);
     try {
       if (_mode == SearchSource.global) {
-        final api = ApiHandler();
-        lastresults = await api.searchTracks(query).then((c) {
-          if (initailQuery != null) {
-            final target = initailQuery!.durationseconds;
-            c.sort((a, b) {
-              final diffA = (a.duration! - target).abs();
-              final diffB = (b.duration! - target).abs();
-              return diffA.compareTo(diffB);
-            });
-          }
-          return c;
-        });
-        lastquery = query;
-        setState(() {
-          _results = lastresults;
-        });
+        await _searchLRCLIB();
       } else {
         final helper = DataHelper.instance;
         final tracks = await helper.searchTracks(query);
@@ -100,6 +87,25 @@ class _QuickSearchState extends State<QuickSearch> {
         _loading = false;
       });
     }
+  }
+
+  Future<void> _searchLRCLIB() async {
+    final api = ApiHandler();
+    lastresults = await api.searchTracks(query).then((c) {
+      if (initailQuery != null) {
+        final target = initailQuery!.durationseconds;
+        c.sort((a, b) {
+          final diffA = (a.duration! - target).abs();
+          final diffB = (b.duration! - target).abs();
+          return diffA.compareTo(diffB);
+        });
+      }
+      return c;
+    });
+    lastquery = query;
+    setState(() {
+      _results = lastresults;
+    });
   }
 
   @override
@@ -124,7 +130,8 @@ class _QuickSearchState extends State<QuickSearch> {
                 onSubmitted: (_) => _search(),
                 decoration: InputDecoration(
                   hintText: 'Search...',
-                  helperText: 'ex. Title - Artist', //, artists, or lyrics',
+                  helperText:
+                      'ex. ${SearchTerms.rule}', //, artists, or lyrics',
                   // border: InputBorder.none,
                   isDense: true,
                 ),

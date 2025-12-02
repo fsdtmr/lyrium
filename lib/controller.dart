@@ -220,6 +220,14 @@ class MusicController extends ChangeNotifier {
   void submitLyrics(BuildContext context) {
     if (lyrics is DraftTrack) opensubmitform(context, lyrics as DraftTrack);
   }
+
+  Future<void> rebuildUntil(bool Function() param0) async {
+    while (param0()) {
+      _hasAccess = await MusicNotificationService.hasNotificationAccess();
+      notifyListeners();
+      Future.delayed(Durations.extralong4);
+    }
+  }
 }
 
 abstract class LyricsController {

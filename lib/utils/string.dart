@@ -11,3 +11,7 @@ String replaceFirstCaseInsensitive(
 
   return source.replaceRange(index, index + pattern.length, to);
 }
+
+extension ValidString on String? {
+  get isValid => this != null && this!.isNotEmpty;
+}
