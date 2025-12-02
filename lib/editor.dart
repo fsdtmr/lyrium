@@ -1,5 +1,8 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
+import 'package:lyrium/datahelper.dart';
 import 'package:lyrium/models.dart';
+import 'package:lyrium/storage/local.dart';
 import 'package:lyrium/viewer.dart';
 import 'package:pretty_diff_text/pretty_diff_text.dart';
 
@@ -74,6 +77,7 @@ class _LyricsEditorState extends State<LyricsEditor> {
                     padding: EdgeInsets.symmetric(horizontal: 20),
                     child: ScrollableArea(
                       child: TextField(
+                        autofocus: true,
                         minLines: 100,
                         maxLines: null,
                         controller: textEditingController,
@@ -205,6 +209,7 @@ class _ArtworkFormState extends State<ArtworkForm> {
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
+          onChanged: () => setState(() {}),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -218,8 +223,6 @@ class _ArtworkFormState extends State<ArtworkForm> {
                   return null;
                 },
               ),
-              SizedBox(height: 16),
-
               TextFormField(
                 controller: _artistController,
                 decoration: InputDecoration(labelText: "Artist"),
@@ -246,7 +249,19 @@ class _ArtworkFormState extends State<ArtworkForm> {
 
               TextButton(
                 onPressed: _formKey.currentState?.validate() ?? false
-                    ? () {}
+                    ? () {
+                        DataHelper.instance
+                            .insertDraft(
+                              _titleController.text,
+                              _artistController.text,
+                              widget.to,
+                            )
+                            .then((c) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Saved')),
+                              );
+                            });
+                      }
                     : null,
                 child: Text("Submit"),
               ),

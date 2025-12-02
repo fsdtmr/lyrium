@@ -64,6 +64,8 @@ class _QuickSearchState extends State<QuickSearch> {
       _results = [];
       _error = null;
     });
+
+    setofquery.add(query);
     try {
       if (_mode == SearchSource.global) {
         final api = ApiHandler();
@@ -111,6 +113,7 @@ class _QuickSearchState extends State<QuickSearch> {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
               child: TextField(
+                style: TextStyle(fontSize: 20),
                 autofillHints: setofquery,
                 autofocus: true,
                 maxLines: 4,
@@ -122,7 +125,7 @@ class _QuickSearchState extends State<QuickSearch> {
                 decoration: InputDecoration(
                   hintText: 'Search...',
                   helperText: 'ex. Title - Artist', //, artists, or lyrics',
-                  border: InputBorder.none,
+                  // border: InputBorder.none,
                   isDense: true,
                 ),
               ),

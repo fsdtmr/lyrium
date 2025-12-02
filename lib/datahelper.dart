@@ -10,7 +10,6 @@ class DataHelper {
 
   /// Insert a new track and its lyrics
   Future<int> saveTrack(LyricsTrack track, TrackInfo? extra) async {
-    // Insert into lyrics
     final lyricId = await db
         .into(db.lyrics)
         .insert(
@@ -24,7 +23,6 @@ class DataHelper {
             lyrics: Value(track.syncedLyrics ?? track.plainLyrics ?? ''),
           ),
         );
-
     return lyricId;
   }
 
@@ -91,4 +89,20 @@ class DataHelper {
 
   /// Close database connection
   Future<void> close() => db.close();
+
+  Future<List<Lyric>> insertDraft(title, artist, lyrics) {
+    return db
+        .into(db.lyrics)
+        .insert(
+          LyricsCompanion.insert(
+            title: title,
+            artist: Value(artist),
+            duration: 0.0,
+            lyrics: Value(lyrics),
+          ),
+        )
+        .then((c) {
+          return (db.select(db.lyrics)..where((u) => u.id.equals(c))).get();
+        });
+  }
 }
