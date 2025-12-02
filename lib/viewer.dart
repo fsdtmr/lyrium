@@ -1,29 +1,27 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:lyrium/controller.dart';
 import 'package:lyrium/editor.dart';
 import 'package:lyrium/utils/clock.dart';
 import 'package:lyrium/models.dart';
 import 'package:lyrium/utils/duration.dart';
 import 'package:lyrium/utils/lrc.dart';
-import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
+import 'package:collection/collection.dart';
 
 class LyricsView extends StatefulWidget {
-  final LyricsTrack? lyrics;
-  final Future<void> Function(bool) togglePause;
-  final Future<void> Function(Duration) seek;
-  final Future<void> Function(LyricsTrack lyrics) onSave;
-  final Future<Duration> Function() getPrimaryPosition;
+  final LyricsController controller;
 
-  final bool isPlaying;
-  final Duration? atPosition;
+  final Future<void> Function() onSave;
+
+  final TextStyle? textStyle;
+  final TextStyle? highlightTextStyle;
+
   const LyricsView({
     super.key,
-    this.lyrics,
-    required this.togglePause,
-    required this.seek,
-    required this.isPlaying,
-    required this.atPosition,
+    required this.controller,
     required this.onSave,
-    required this.getPrimaryPosition,
+    this.textStyle,
+    this.highlightTextStyle,
   });
 
   @override
@@ -31,19 +29,22 @@ class LyricsView extends StatefulWidget {
 }
 
 class _LyricsViewState extends State<LyricsView> {
-  late List<LRCLine>? lyrics;
-  final ItemScrollController itemScrollController = ItemScrollController();
+  late List<LRCLine> lyrics;
 
   late Duration duration = const Duration(seconds: 0);
   double position = 0.0;
   Duration newPosition = const Duration(seconds: 0);
   int lyindex = -1;
   late ClockManager watchManager;
+
+  late List<GlobalKey> keys;
+
   @override
   void initState() {
-    duration = widget.lyrics?.duration?.toDuration() ?? Duration.zero;
+    duration = widget.controller.duration;
 
-    lyrics = toLRCLineList(widget.lyrics?.syncedLyrics ?? "");
+    lyrics = widget.controller.lyrics.lines;
+    keys = List<GlobalKey>.generate(lyrics.length, (i) => GlobalKey());
 
     watchManager = ClockManager((Duration elapsed) {
       if (mounted) {
@@ -62,9 +63,9 @@ class _LyricsViewState extends State<LyricsView> {
       }
     });
     Future.microtask(() async {
-      watchManager.seek(await widget.getPrimaryPosition());
-      if (widget.isPlaying) {
-        watchManager.play(startfrom: widget.atPosition);
+      watchManager.seek(await widget.controller.getPosition());
+      if (widget.controller.isPlaying) {
+        watchManager.play(startfrom: widget.controller.atPosition);
       }
     });
     super.initState();
@@ -72,19 +73,22 @@ class _LyricsViewState extends State<LyricsView> {
 
   @override
   void didUpdateWidget(covariant LyricsView oldWidget) {
-    if (widget.isPlaying != oldWidget.isPlaying) {
-      if (oldWidget.isPlaying != widget.isPlaying) {
-        if (widget.isPlaying) {
+    if (widget.controller.isPlaying != oldWidget.controller.isPlaying) {
+      if (oldWidget.controller.isPlaying != widget.controller.isPlaying) {
+        if (widget.controller.isPlaying) {
           watchManager.play();
-          watchManager.seek(widget.atPosition ?? watchManager.elapsed);
+          watchManager.seek(
+            widget.controller.atPosition ?? watchManager.elapsed,
+          );
         } else {
           watchManager.pause();
           // Bug: seeking creates a invalid state
-          // watchManager.seek(widget.atPosition ?? watchManager.elapsed);
+          // watchManager.seek(widget.controller.atPosition ?? watchManager.elapsed);
         }
       }
-    } else if (widget.atPosition != oldWidget.atPosition) {
-      watchManager.seek(widget.atPosition ?? watchManager.elapsed);
+    } else if (widget.controller.atPosition !=
+        oldWidget.controller.atPosition) {
+      watchManager.seek(widget.controller.atPosition ?? watchManager.elapsed);
     }
 
     super.didUpdateWidget(oldWidget);
@@ -92,130 +96,135 @@ class _LyricsViewState extends State<LyricsView> {
 
   @override
   Widget build(BuildContext context) {
-    if (lyrics == null || lyrics!.isEmpty) {
+    if (lyrics.isEmpty) {
       return const Center(child: Text("No lyrics available"));
     }
 
-    return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: NotificationListener<OverscrollIndicatorNotification>(
-          onNotification: (notification) {
-            if (animating) {
-              notification.disallowIndicator();
-            }
-            return true;
-          },
-          child: ScrollablePositionedList.separated(
-            separatorBuilder: (context, index) => SizedBox(
-              height: 20, // Space between lyrics lines
-            ),
-            itemScrollController: itemScrollController,
-            itemCount: lyrics!.length,
-            itemBuilder: (context, index) {
-              return GestureDetector(
-                onTap: () {
-                  incrementLyric(index - lyindex);
-                },
-
-                child: Builder(
-                  builder: (builder) {
-                    final line = lyrics![index];
-
-                    return AnimatedOpacity(
-                      opacity: index == lyindex ? 1 : .5,
-                      duration: Durations.short4,
-                      child: Text(
-                        line.text,
-                        textScaler: TextScaler.linear(2),
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                    );
-                  },
-                ),
-              );
+    return ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+      child: Scaffold(
+        body: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: NotificationListener<OverscrollIndicatorNotification>(
+            onNotification: (notification) {
+              if (animating) {
+                notification.disallowIndicator();
+              }
+              return true;
             },
+            child: SingleChildScrollView(
+              child: RichText(
+                text: TextSpan(
+                  children:
+                      lyrics
+                          .mapIndexed(
+                            (index, line) => TextSpan(
+                              children: [
+                                WidgetSpan(
+                                  child: SizedBox.fromSize(
+                                    size: Size.zero,
+                                    key: keys[index],
+                                  ),
+                                ),
+
+                                TextSpan(
+                                  text: "${line.text}\n",
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () =>
+                                        incrementLyric(index - lyindex),
+                                  style: index == lyindex
+                                      ? widget.highlightTextStyle
+                                      : widget.textStyle,
+                                ),
+                              ],
+                            ),
+                          )
+                          .toList() ??
+                      [],
+                ),
+              ),
+            ), // buildscrolling(),
           ),
         ),
+
+        bottomNavigationBar: buildControls(context),
       ),
+    );
+  }
 
-      bottomNavigationBar: SizedBox(
-        height: 120, // Increased height
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Row(
-              children: [
-                SizedBox(width: 8.0),
-                Text(
-                  newPosition.toShortString(),
-                  style: const TextStyle(fontSize: 12),
-                ),
-                Expanded(
-                  child: Slider(value: position, onChanged: onSeeked),
-                ),
-                Text(
-                  widget.lyrics?.duration.toShortString() ?? "-----",
-                  style: const TextStyle(fontSize: 12),
-                ),
+  SizedBox buildControls(BuildContext context) {
+    return SizedBox(
+      height: 120, // Increased height
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            children: [
+              SizedBox(width: 8.0),
+              Text(
+                newPosition.toShortString(),
+                style: const TextStyle(fontSize: 12),
+              ),
+              Expanded(
+                child: Slider(value: position, onChanged: onSeeked),
+              ),
+              Text(
+                widget.controller.lyrics.duration.toShortString() ?? "-----",
+                style: const TextStyle(fontSize: 12),
+              ),
 
-                SizedBox(width: 8.0),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit_note),
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (c) => SimpleLyricEditor(
-                          initial:
-                              widget.lyrics?.syncedLyrics ??
-                              widget.lyrics?.plainLyrics ??
-                              "",
-                        ),
-                      ),
-                    );
-                  },
+              SizedBox(width: 8.0),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.edit_note),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (c) =>
+                          LyricsEditor(track: widget.controller.lyrics),
+                    ),
+                  );
+                },
+              ),
+              Spacer(),
+              IconButton(
+                icon: const Icon(Icons.fast_rewind),
+                onPressed: () {
+                  incrementLyric(-1);
+                },
+              ),
+              IconButton(
+                icon: Icon(
+                  watchManager.paused ? Icons.play_arrow : Icons.pause,
                 ),
-                Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.fast_rewind),
-                  onPressed: () {
-                    incrementLyric(-1);
-                  },
-                ),
-                IconButton(
-                  icon: Icon(
-                    watchManager.paused ? Icons.play_arrow : Icons.pause,
-                  ),
-                  onPressed: () {
-                    watchManager.paused
-                        ? watchManager.play()
-                        : watchManager.pause();
+                onPressed: () {
+                  watchManager.paused
+                      ? watchManager.play()
+                      : watchManager.pause();
 
-                    widget.togglePause(watchManager.paused);
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.fast_forward),
-                  onPressed: () {
-                    incrementLyric(1);
-                  },
-                ),
+                  widget.controller.togglePause(watchManager.paused);
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.fast_forward),
+                onPressed: () {
+                  incrementLyric(1);
+                },
+              ),
 
-                Spacer(),
+              Spacer(),
 
-                IconButton(
-                  onPressed: () => {},
-                  icon: Icon(Icons.bookmark_outline),
-                ),
-              ],
-            ),
-          ],
-        ),
+              IconButton(
+                onPressed: () => widget.onSave(),
+                icon: Icon(Icons.bookmark_outline),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -231,19 +240,19 @@ class _LyricsViewState extends State<LyricsView> {
 
     watchManager.seek(newPosition);
 
-    widget.seek(newPosition);
+    widget.controller.seek(newPosition);
   }
 
   int prevIndex = 0;
   int findlyric(Duration newPosition) {
-    if (lyrics == null || lyrics!.isEmpty) return -1;
+    if (lyrics.isEmpty) return -1;
 
     int left = 0;
-    int right = lyrics!.length - 1;
+    int right = lyrics.length - 1;
     int resultIndex = 0;
 
-    if (prevIndex >= 0 && prevIndex < lyrics!.length) {
-      if (lyrics![prevIndex].timestamp <= newPosition) {
+    if (prevIndex >= 0 && prevIndex < lyrics.length) {
+      if (lyrics[prevIndex].timestamp <= newPosition) {
         left = prevIndex;
       } else {
         right = prevIndex;
@@ -252,7 +261,7 @@ class _LyricsViewState extends State<LyricsView> {
 
     while (left <= right) {
       int mid = left + ((right - left) >> 1);
-      if (lyrics![mid].timestamp <= newPosition) {
+      if (lyrics[mid].timestamp <= newPosition) {
         resultIndex = mid;
         left = mid + 1;
       } else {
@@ -267,17 +276,17 @@ class _LyricsViewState extends State<LyricsView> {
 
   void incrementLyric(int i) {
     var nextindex = (lyindex += i)
-        .remainder(lyrics!.length)
-        .clamp(0, lyrics!.length - 1);
+        .remainder(lyrics.length)
+        .clamp(0, lyrics.length - 1);
     setState(() {
       lyindex = nextindex;
-      newPosition = lyrics![lyindex].timestamp;
+      newPosition = lyrics[lyindex].timestamp;
       position = newPosition.inMilliseconds / duration.inMilliseconds;
     });
 
     watchManager.seek(newPosition);
 
-    widget.seek(newPosition);
+    widget.controller.seek(newPosition);
   }
 
   int animatingto = -1;
@@ -285,15 +294,27 @@ class _LyricsViewState extends State<LyricsView> {
 
   void scrollto(int lyindex) {
     if (animatingto == lyindex) return;
+
     animating = true;
 
-    if (!itemScrollController.isAttached) return;
-    itemScrollController
-        .scrollTo(index: lyindex, duration: Durations.short4, alignment: .3)
-        .then((q) {
-          animating = false;
-        });
-
+    final context = keys[lyindex].currentContext;
+    if (context != null) {
+      Scrollable.ensureVisible(
+        context,
+        duration: Durations.short4,
+        alignment: .3,
+        curve: Curves.easeInOut,
+      ).then((q) {
+        animating = false;
+      });
+    }
+    // }
     animatingto = lyindex;
   }
+}
+
+extension LyricsTrackExt on LyricsTrack? {
+  List<LRCLine> get lines =>
+      toLRCLineList(this?.syncedLyrics ?? "", musicNoteString);
+  String get editable => this?.syncedLyrics ?? this?.plainLyrics ?? "";
 }

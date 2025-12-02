@@ -13,10 +13,9 @@ Future<QueryExecutor> openPlatformConnection(String name) async {
   return NativeDatabase(file);
 }
 
-
 class NotificationConnection {
-  static const _eventChannel = EventChannel("music_notifications");
-  static const _methodChannel = MethodChannel("music_notifications/methods");
+  static const _eventChannel = EventChannel("com.example.lyrium");
+  static const _methodChannel = MethodChannel("com.example.lyrium/methods");
 
   static Stream<Map?> get notifications async* {
     yield* _eventChannel.receiveBroadcastStream().map((event) => event as Map?);
@@ -26,8 +25,8 @@ class NotificationConnection {
     await _methodChannel.invokeMethod("openNotificationAccessSettings");
   }
 
-  static Future<Map?> getNowPlaying() async {
-    return await _methodChannel.invokeMethod("getNowPlaying");
+  static Future<bool> update() async {
+    return await _methodChannel.invokeMethod("update");
   }
 
   static Future<bool> seekTo(Duration position) async {
@@ -35,11 +34,8 @@ class NotificationConnection {
   }
 
   static Future<Duration> getPosition() async {
-     final data =  await _methodChannel.invokeMethod<int?>("getPosition");
-
-
-      return Duration(milliseconds: data ?? 0);
-
+    final data = await _methodChannel.invokeMethod<int?>("getPosition");
+    return Duration(milliseconds: data ?? 0);
   }
 
   static Future<Image?> getImage() async {

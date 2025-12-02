@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lyrium/api.dart';
 import 'package:lyrium/datahelper.dart';
+import 'package:lyrium/editor.dart';
 import 'package:lyrium/service/service.dart';
 import 'package:lyrium/models.dart';
 import 'package:lyrium/utils/duration.dart';
+import 'package:lyrium/widgets/submit_form.dart';
 
 class MusicController extends ChangeNotifier {
   TrackInfo? info;
@@ -32,7 +34,6 @@ class MusicController extends ChangeNotifier {
   }
 
   Future<void> _init() async {
-    //TODO: fix too much work on startup
     await Future.delayed(Duration(seconds: 2));
     await _checkAccessAndStream();
     _startPolling();
@@ -41,8 +42,7 @@ class MusicController extends ChangeNotifier {
   void _startPolling() {
     _polling = Timer.periodic(const Duration(seconds: 5), (t) async {
       try {
-        final data = await MusicNotificationService.getNowPlaying();
-        _setData(data);
+        await MusicNotificationService.update();
       } catch (e) {
         debugPrint('Polling error: $e');
         t.cancel();
@@ -56,28 +56,28 @@ class MusicController extends ChangeNotifier {
       isReady = true;
       notifyListeners();
 
-      if (hasAccess) {
-        _notificationSubscription = MusicNotificationService.notifications
-            .listen(_setData);
-        final data = await MusicNotificationService.getNowPlaying();
+      late Function(Map<dynamic, dynamic>? data) reader;
 
-        if (data != null) {
-          try {
-            final playing = data["isPlaying"] as bool? ?? false;
-            if (playing) {
-              showTrack = true;
-            }
-          } catch (e) {
-            debugPrint(e.toString());
-          }
+      reader = (Map<dynamic, dynamic>? data) {
+        _setData(data);
+
+        if (isPlaying) {
+          showTrack = true;
         }
 
-        _setData(data);
+        reader = (Map<dynamic, dynamic>? data) => _setData(data);
+      };
+
+      if (hasAccess) {
+        _notificationSubscription = MusicNotificationService.notifications
+            .listen((m) => reader(m));
       }
     } on PlatformException catch (e) {
       debugPrint("Access check failed: ${e.message}");
     }
   }
+
+  var IS_PLAYING = 'isPlaying';
 
   void _setData(Map<dynamic, dynamic>? data) async {
     if (data == null) {
@@ -85,15 +85,14 @@ class MusicController extends ChangeNotifier {
       lyrics = null;
       duration = null;
       progress = null;
-      isPlaying = false;
       return;
     } else {
       final prevName = info?.trackName;
 
       package = data["package"];
       duration = Duration(milliseconds: (data["duration"] as int?) ?? 0);
-      progress = Duration(milliseconds: (data["progress"] as int?) ?? 0);
-      isPlaying = data["isPlaying"] as bool? ?? false;
+      progress = Duration(milliseconds: (data["position"] as int?) ?? 0);
+      isPlaying = data[IS_PLAYING] as bool? ?? false;
 
       info = TrackInfo(
         artistName: data["artist"],
@@ -102,7 +101,7 @@ class MusicController extends ChangeNotifier {
         durationseconds: duration.inDouble,
       );
 
-      if (prevName != info?.trackName) {
+      if (prevName != info?.trackName && !unattachedMode) {
         await _onTrackChanged();
       }
     }
@@ -110,15 +109,24 @@ class MusicController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<Image?>? image;
+
   Future<void> _onTrackChanged() async {
     if (info == null) {
+      image = null;
       lyrics = null;
     } else {
+      image = MusicNotificationService.getImage().then((v) async {
+        if (v == null) {
+          await Future.delayed(Durations.extralong3);
+          return MusicNotificationService.getImage();
+        }
+        return v;
+      });
       lyrics = await DataHelper.instance.getTrack(info!);
     }
     notifyListeners();
   }
-
 
   Future<void> fetchAndSaveLyrics() async {
     if (info == null) return;
@@ -126,17 +134,21 @@ class MusicController extends ChangeNotifier {
     final api = ApiHandler();
     final lyricsData = await api.find(info!);
 
-    await DataHelper.instance.saveTrack(lyricsData.first, info);
-    setLyrics(lyricsData.first);
+    startLyricsSaved(lyricsData.first, true);
   }
 
-  Future<void> saveLyrics(LyricsTrack track) async {
+  Future<void> startLyricsSaved(
+    LyricsTrack track, [
+    bool attached = false,
+  ]) async {
     await DataHelper.instance.saveTrack(track, info);
-    setLyrics(track);
+    setLyrics(track, attached);
   }
 
-  void setLyrics(LyricsTrack? track) {
+  var unattachedMode = false;
+  void setLyrics(LyricsTrack? track, [bool attached = false]) {
     lyrics = track;
+    unattachedMode = !attached;
     notifyListeners();
   }
 
@@ -169,7 +181,6 @@ class MusicController extends ChangeNotifier {
     await _checkAccessAndStream();
   }
 
-
   double get progressValue => duration != null && duration!.inMilliseconds > 0
       ? (progress?.inMilliseconds ?? 0) / (duration!.inMilliseconds)
       : 0.0;
@@ -197,4 +208,86 @@ class MusicController extends ChangeNotifier {
     info = newinfo;
     notifyListeners();
   }
+
+  openEditor(context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (c) => LyricsEditor(track: LyricsTrack.empty()),
+      ),
+    );
+  }
+
+  void submitLyrics(BuildContext context) {
+    if (lyrics is DraftTrack) opensubmitform(context, lyrics as DraftTrack);
+  }
+
+  Future<void> rebuildUntil(bool Function() param0) async {
+    while (param0()) {
+      _hasAccess = await MusicNotificationService.hasNotificationAccess();
+      notifyListeners();
+      Future.delayed(Durations.extralong4);
+    }
+  }
+}
+
+abstract class LyricsController {
+  final LyricsTrack lyrics;
+
+  LyricsController({required this.lyrics});
+  Future<void> togglePause(bool b);
+  Future<void> seek(Duration duration);
+  Future<Duration> getPosition();
+
+  bool get isPlaying;
+  Duration? get atPosition;
+  Duration get duration;
+}
+
+class TempController extends LyricsController {
+  final Future<void> Function(bool) onTogglePause;
+  final Future<void> Function(Duration) onSeek;
+  final Future<Duration> Function() getPrimaryPosition;
+  @override
+  final Duration? atPosition;
+  @override
+  final bool isPlaying;
+  TempController({
+    required super.lyrics,
+    required this.onTogglePause,
+    required this.onSeek,
+    required this.getPrimaryPosition,
+    required this.isPlaying,
+    this.atPosition,
+  });
+
+  @override
+  Future<Duration> getPosition() => getPrimaryPosition();
+  @override
+  Future<void> seek(Duration duration) => onSeek(duration);
+  @override
+  Future<void> togglePause(bool b) => onTogglePause(b);
+  @override
+  Duration get duration => lyrics.duration?.toDuration() ?? Duration(hours: 1);
+}
+
+class NoOpController extends LyricsController {
+  NoOpController({required super.lyrics});
+
+  @override
+  Duration? get atPosition => Duration.zero;
+
+  @override
+  Future<Duration> getPosition() async => Duration.zero;
+  @override
+  bool get isPlaying => true;
+
+  @override
+  Future<void> seek(Duration duration) async {}
+
+  @override
+  Future<void> togglePause(bool b) async {}
+
+  @override
+  // TODO: implement duration
+  Duration get duration => lyrics.duration?.toDuration() ?? Duration(hours: 1);
 }

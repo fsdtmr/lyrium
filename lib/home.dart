@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:lyrium/controller.dart';
+import 'package:lyrium/editor.dart';
+import 'package:lyrium/models.dart';
 import 'package:lyrium/search.dart';
-import 'package:lyrium/service/service.dart';
+import 'package:lyrium/widgets/submit_form.dart';
 import 'package:provider/provider.dart';
 import 'package:lyrium/viewer.dart';
 
@@ -18,96 +20,12 @@ class _HomePageState extends State<HomePage> {
     return Consumer<MusicController>(
       builder: (BuildContext context, MusicController ctrl, Widget? child) {
         return AnimatedCrossFade(
-          firstChild: Padding(
-            padding: EdgeInsetsGeometry.all(9.0),
-            child: Center(
-              child: SizedBox(width: 300, child: LinearProgressIndicator()),
+          firstChild: Scaffold(
+            body: Center(
+              child: SizedBox(width: 50, child: LinearProgressIndicator()),
             ),
           ),
-          secondChild: Builder(
-            builder: (context) {
-              if (ctrl.showTrack) {
-                return Scaffold(
-                  appBar: AppBar(
-                    title: ctrl.info == null && ctrl.lyrics == null
-                        ? DefaultHeader(mode: false)
-                        : GestureDetector(
-                            onTap: () {
-                              ctrl.setShowTrackMode(false);
-                            },
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  ctrl.info?.trackName ??
-                                      ctrl.lyrics?.trackName ??
-                                      "Track",
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                Text(
-                                  ctrl.info?.artistName ??
-                                      ctrl.lyrics?.trackName ??
-                                      "Artist",
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                              ],
-                            ),
-                          ),
-                    bottom: PreferredSize(
-                      preferredSize: const Size.fromHeight(5),
-                      child: LinearProgressIndicator(
-                        value: ctrl.progressValue,
-                        backgroundColor: ctrl.lyrics != null
-                            ? null
-                            : Colors.transparent,
-                      ),
-                    ),
-                  ),
-                  body: Builder(
-                    builder: (context) {
-                      if (ctrl.lyrics == null) {
-                        return Center(
-                          child: Builder(
-                            builder: (context) {
-                              if (ctrl.hasAccess) {
-                                if (ctrl.info != null) {
-                                  return _buildFetcher(context, ctrl);
-                                } else {
-                                  return _buildNoMusic();
-                                }
-                              } else {
-                                return _buildAccessRequired(context, ctrl);
-                              }
-                            },
-                          ),
-                        );
-                      }
-
-                      final track = ctrl.lyrics;
-                      final isPlaying = ctrl.isPlaying;
-                      final atPosition = ctrl.progress;
-                      return LyricsView(
-                        lyrics: track,
-                        isPlaying: isPlaying,
-                        atPosition: atPosition,
-                        getPrimaryPosition: ctrl.position,
-                        togglePause: (b) => ctrl.togglePause(pause: b),
-                        seek: ctrl.seekTo,
-                        onSave: ctrl.saveLyrics,
-                      );
-                      ;
-                    },
-                  ),
-                );
-              } else {
-                return Scaffold(
-                  body: QuickSearch(
-                    emptyResults: (c) => buildUserSuggesions(c, ctrl),
-                  ),
-                );
-              }
-            },
-          ),
+          secondChild: buildpage(ctrl),
           crossFadeState: ctrl.isReady
               ? CrossFadeState.showSecond
               : CrossFadeState.showFirst,
@@ -117,16 +35,162 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget buildpage(MusicController ctrl) {
+    if (!ctrl.isReady) return SizedBox.shrink();
+
+    return Builder(
+      builder: (context) {
+        if (ctrl.showTrack) {
+          return Scaffold(
+            drawer: buildDrawer(),
+            appBar: buildLyricsAppBar(ctrl),
+            body: buildcontent(ctrl),
+          );
+        } else {
+          return Scaffold(
+            floatingActionButton: FloatingActionButton.extended(
+              onPressed: () => ctrl.openEditor(context),
+              label: Text("Crate New"),
+              icon: Icon(Icons.add),
+            ),
+
+            body: QuickSearch(initailQuery: ctrl.info),
+          );
+        }
+      },
+    );
+  }
+
+  AppBar buildLyricsAppBar(MusicController ctrl) {
+    return AppBar(
+      actions: [
+        IconButton(
+          onPressed: () => ctrl.setShowTrackMode(false),
+          icon: RotatedBox(quarterTurns: 1, child: Icon(Icons.chevron_right)),
+        ),
+      ],
+      leading: FutureBuilder(
+        future: ctrl.image,
+        builder: (c, s) => Padding(
+          padding: EdgeInsetsGeometry.all(8.0),
+          child: SizedBox(
+            width: 30,
+            height: 30,
+            child: s.data ?? Icon(Icons.music_note),
+          ),
+        ),
+      ),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            ctrl.info?.trackName ?? ctrl.lyrics?.trackName ?? "No Track",
+            overflow: TextOverflow.ellipsis,
+          ),
+          Text(
+            ctrl.info?.artistName ?? ctrl.lyrics?.trackName ?? "No Artist",
+            style: const TextStyle(fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildcontent(MusicController ctrl) {
+    return Builder(
+      builder: (context) {
+        if (ctrl.lyrics == null) {
+          return Center(
+            child: Builder(
+              builder: (context) {
+                if (ctrl.hasAccess) {
+                  if (ctrl.info != null) {
+                    return _buildFetcher(context, ctrl);
+                  } else {
+                    return _buildNoMusic();
+                  }
+                } else {
+                  return _buildAccessRequired(context, ctrl);
+                }
+              },
+            ),
+          );
+        }
+
+        final track = ctrl.lyrics;
+        final isPlaying = ctrl.isPlaying;
+        final atPosition = ctrl.progress;
+
+        final textColor =
+            Theme.of(context).textTheme.bodyMedium?.color ?? Colors.black;
+
+        var textStyle = TextStyle(
+          fontSize: 40,
+
+          fontWeight: FontWeight.w800,
+          color: textColor.withAlpha(127),
+        );
+        var highlighttextStyle = TextStyle(
+          fontSize: 40,
+          fontWeight: FontWeight.w800,
+          color: textColor,
+        );
+
+        var textScaler = TextScaler.linear(2);
+
+        return SizedBox(
+          // width: 500,
+          // height: 500,
+          child: LyricsView(
+            controller: TempController(
+              lyrics: track ?? LyricsTrack.empty(),
+              isPlaying: isPlaying,
+              atPosition: atPosition,
+              getPrimaryPosition: ctrl.position,
+              onTogglePause: (b) => ctrl.togglePause(pause: b),
+              onSeek: ctrl.seekTo,
+            ),
+            textStyle: textStyle,
+            highlightTextStyle: highlighttextStyle,
+            onSave: () => opensubmitform(
+              context,
+              DraftTrack.from(ctrl.lyrics!, ctrl.lyrics!.syncedLyrics!),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  PreferredSize buildnotificationpr(MusicController ctrl) {
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(5),
+      child: LinearProgressIndicator(
+        value: ctrl.progressValue,
+        backgroundColor: ctrl.lyrics != null ? null : Colors.transparent,
+      ),
+    );
+  }
+
+  bool busyFeching = false;
+
   Widget _buildFetcher(BuildContext context, MusicController ctrl) {
     return GestureDetector(
-      onDoubleTap: () => ctrl.setShowTrackMode(false),
-      onLongPress: () async {
+      onTap: () async {
+        if (busyFeching) return;
         try {
+          busyFeching = true;
+          setState(() {});
           await ctrl.fetchAndSaveLyrics();
         } catch (e) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text("Error Fetching: $e")));
+
+          ctrl.setShowTrackMode(false);
+        } finally {
+          setState(() {});
+          busyFeching = false;
         }
       },
       child: Padding(
@@ -134,16 +198,34 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // const Text("🔍", textScaler: TextScaler.linear(5)),
-            // Slider(value: ctrl.progressValue, onChanged: ctrl.seek),
-            FutureBuilder(
-              future: MusicNotificationService.getImage(),
-              builder: (c, s) {
-                return AspectRatio(
-                  aspectRatio: 1,
-                  child: s.data ?? SizedBox.shrink(),
-                );
-              },
+            AnimatedPadding(
+              padding: busyFeching
+                  ? EdgeInsetsGeometry.all(20)
+                  : EdgeInsetsGeometry.all(0),
+              duration: Durations.long1,
+              child: FutureBuilder(
+                future: ctrl.image,
+                builder: (c, s) {
+                  return AspectRatio(
+                    aspectRatio: 1,
+                    child:
+                        s.data ??
+                        Center(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              color: Theme.of(context).secondaryHeaderColor,
+                            ),
+                            child: Icon(
+                              Icons.music_note,
+                              size: 300,
+                              color: Theme.of(context).scaffoldBackgroundColor,
+                            ),
+                          ),
+                        ),
+                  );
+                },
+              ),
             ),
             SizedBox(height: 30),
             FittedBox(
@@ -155,31 +237,11 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             Text(ctrl.info?.artistName ?? ""),
-            Text(
-              "Hold to fetch",
-              style: TextStyle(color: Colors.grey.withAlpha(100)),
-            ),
+            Text("Search", style: TextStyle(color: Colors.grey.withAlpha(100))),
           ],
         ),
       ),
     );
-  }
-
-  buildUserSuggesions(BuildContext context, MusicController controller) {
-    if (controller.isReady) {
-      if (controller.hasAccess) {
-        if (controller.info == null) {
-          return _buildNoMusic();
-        }
-        if (controller.lyrics == null) {
-          return _buildNoResults();
-        }
-      } else {
-        return _buildAccessRequired(context, controller);
-      }
-    }
-
-    return SizedBox.shrink();
   }
 
   Widget _buildNoMusic() => const Column(
@@ -200,6 +262,9 @@ class _HomePageState extends State<HomePage> {
     if (ctrl == null) {
       return LinearProgressIndicator();
     }
+    if (ctrl.hasAccess) {
+      return IconButton(onPressed: () {}, icon: Icon(Icons.search));
+    }
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -207,23 +272,33 @@ class _HomePageState extends State<HomePage> {
         const SizedBox(height: 16),
         const Text("Enable Notification Access?"),
         ElevatedButton(
-          onPressed: ctrl.openNotificationAccessSettings,
+          onPressed: () => ctrl.openNotificationAccessSettings().then((c) {
+            ctrl.rebuildUntil(() => ctrl.hasAccess);
+          }),
           child: const Text("Grant Access"),
         ),
       ],
     );
   }
 
-  Widget _buildNoResults() => const Column(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      Icon(Icons.search_off, size: 80, color: Colors.grey),
-      SizedBox(height: 16),
-      Text(
-        'Not Found',
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+  void showDrawer() {}
+
+  Drawer buildDrawer() {
+    return Drawer(
+      child: ListView(
+        children: [
+          // ListTile(
+          //   onTap: () => {},
+          //   leading: Icon(Icons.settings),
+          //   title: Text("Settings"),
+          // ),
+          ListTile(
+            onTap: () => showAboutDialog(context: context),
+            leading: Icon(Icons.info),
+            title: Text("About"),
+          ),
+        ],
       ),
-      SizedBox(height: 8),
-    ],
-  );
+    );
+  }
 }

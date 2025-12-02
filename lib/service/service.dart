@@ -9,19 +9,13 @@ LazyDatabase openConnection(String name) {
   return LazyDatabase(() => openPlatformConnection(name));
 }
 
-
-
 class MusicNotificationService {
-  static get notifications => NotificationConnection.notifications;
+  static Stream<Map?> get notifications => NotificationConnection.notifications;
 
-  static Future<Image?> getImage() =>
-      NotificationConnection.getImage();
+  static Future<Image?> getImage() => NotificationConnection.getImage();
 
   static Future<bool?> hasNotificationAccess() =>
       NotificationConnection.hasNotificationAccess();
-
-  static Future getNowPlaying() =>
-      NotificationConnection.getNowPlaying();
 
   static Future<void> play() => NotificationConnection.play();
 
@@ -29,11 +23,12 @@ class MusicNotificationService {
 
   static togglePause() => NotificationConnection.togglePause();
 
-  static Future<void> openNotificationAccessSettings() => NotificationConnection.openNotificationAccessSettings();
+  static Future<void> openNotificationAccessSettings() =>
+      NotificationConnection.openNotificationAccessSettings();
 
-  static Future<Duration> getPosition() =>
-      NotificationConnection.getPosition();
+  static Future<Duration> getPosition() => NotificationConnection.getPosition();
 
-  static Future<void> seekTo(Duration du) =>
-      NotificationConnection.seekTo(du);
+  static Future<void> seekTo(Duration du) => NotificationConnection.seekTo(du);
+
+  static Future<dynamic> update() => NotificationConnection.update();
 }

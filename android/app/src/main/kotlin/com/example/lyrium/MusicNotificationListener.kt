@@ -1,57 +1,87 @@
 package com.example.lyrium
 
 import android.app.Notification
+import android.content.ComponentName
 import android.content.Context
+import android.graphics.Bitmap
+import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSession
+import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import io.flutter.plugin.common.EventChannel
+import java.io.ByteArrayOutputStream
 
 class MusicNotificationListener : NotificationListenerService() {
 
     companion object {
-        var activeToken: MediaSession.Token? = null
-        var activePackage: String? = null
-        var activeTitle: String? = null
-        // var activeArtist: String? = null
+        var instance: MusicNotificationListener? = null
         var eventSink: EventChannel.EventSink? = null
 
-        fun play(context: Context): Boolean {
-            return activeToken?.let {
-                try {
-                    MediaController(context, it).transportControls.play()
-                    true
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    false
+        // We keep track of the currently "focused" token to control media
+        private var activeToken: MediaSession.Token? = null
+
+        fun update(retries: Int = 10) : Boolean {
+            val currentInstance = instance
+            if (currentInstance != null) {
+                currentInstance.updateActiveSession()
+            } else {
+                if (retries > 0) {
+                    android.os.Handler(android.os.Looper.getMainLooper())
+                            .postDelayed({ update(retries - 1) }, 200)
+                } else {
+                    return false;
                 }
-            } ?: false
+            }
+
+            return true
         }
 
-        fun pause(context: Context): Boolean {
-            return activeToken?.let {
-                try {
-                    MediaController(context, it).transportControls.pause()
-                    true
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    false
+        fun getActiveMediaSessions(context: Context): List<Map<String, Any?>> {
+            val currentInstance = instance ?: return emptyList()
+            val list = mutableListOf<Map<String, Any?>>()
+
+            try {
+                val notifications = currentInstance.activeNotifications
+                for (sbn in notifications) {
+                    val token =
+                            sbn.notification.extras.getParcelable(
+                                    Notification.EXTRA_MEDIA_SESSION,
+                                    MediaSession.Token::class.java
+                            )
+
+                    if (token != null) {
+                        val controller = MediaController(context, token)
+                        val data = controllerToMap(controller, sbn.packageName)
+                        list.add(data)
+                    }
                 }
-            } ?: false
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            return list
         }
 
-        fun seekTo(context: Context, position: Long): Boolean {
-            return activeToken?.let {
-                try {
-                    MediaController(context, it).transportControls.seekTo(position)
-                    true
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    false
-                }
-            } ?: false
+        fun play(context: Context) = sendControl(context) { it.play() }
+        fun pause(context: Context) = sendControl(context) { it.pause() }
+        fun skipNext(context: Context) = sendControl(context) { it.skipToNext() }
+        fun skipPrevious(context: Context) = sendControl(context) { it.skipToPrevious() }
+        fun seekTo(context: Context, pos: Long) = sendControl(context) { it.seekTo(pos) }
+
+        private fun sendControl(
+                context: Context,
+                action: (MediaController.TransportControls) -> Unit
+        ): Boolean {
+            val token = activeToken ?: return false
+            return try {
+                val controller = MediaController(context, token)
+                action(controller.transportControls)
+                true
+            } catch (e: Exception) {
+                false
+            }
         }
 
         fun getPosition(context: android.content.Context): Long? {
@@ -65,118 +95,111 @@ class MusicNotificationListener : NotificationListenerService() {
                 }
             }
         }
+
         fun getImageData(context: Context): ByteArray? {
-            return activeToken?.let {
-                try {
-                    val controller = MediaController(context, it)
-                    val metadata = controller.metadata ?: return null
-        
-                    // Try embedded bitmap first
-                    val bitmap = metadata.getBitmap(android.media.MediaMetadata.METADATA_KEY_ALBUM_ART)
-                        ?: metadata.getBitmap(android.media.MediaMetadata.METADATA_KEY_ART)
-        
-                    if (bitmap != null) {
-                        val stream = java.io.ByteArrayOutputStream()
-                        bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream)
-                        return stream.toByteArray()
-                    }
-        
-                    // If only URI is available
-                    val artUri = metadata.getString(android.media.MediaMetadata.METADATA_KEY_ALBUM_ART_URI)
-                        ?: metadata.getString(android.media.MediaMetadata.METADATA_KEY_ART_URI)
-        
-                    artUri?.let {
-                        try {
-                            val uri = android.net.Uri.parse(it)
-                            val resolver = context.contentResolver
-                            val input = resolver.openInputStream(uri)
-                            input?.use { ins -> return ins.readBytes() }
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }
-        
-                    null
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    null
+            val token = activeToken ?: return null
+            return try {
+                val controller = MediaController(context, token)
+                val metadata = controller.metadata ?: return null
+
+                // Try Bitmap first
+                val bitmap =
+                        metadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
+                                ?: metadata.getBitmap(MediaMetadata.METADATA_KEY_ART)
+
+                if (bitmap != null) {
+                    val stream = ByteArrayOutputStream()
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                    return stream.toByteArray()
                 }
+
+                null
+            } catch (e: Exception) {
+                null
             }
         }
-        
 
-        fun getNowPlaying(context: Context): Map<String, Any?>? {
-            return activeToken?.let {
-                try {
-                    val controller = MediaController(context, it)
-                    val state = controller.playbackState
-                    val metadata = controller.metadata
+        private fun controllerToMap(
+                controller: MediaController,
+                packageName: String?
+        ): Map<String, Any?> {
+            val meta = controller.metadata
+            val state = controller.playbackState
 
-                    mapOf(
-                        "package" to activePackage,
-                        "title" to (activeTitle ?: metadata?.getString(android.media.MediaMetadata.METADATA_KEY_TITLE)),
-                        "artist" to metadata?.getString(android.media.MediaMetadata.METADATA_KEY_ARTIST),
-                        "album" to metadata?.getString(android.media.MediaMetadata.METADATA_KEY_ALBUM),
-                        "duration" to  metadata?.getLong(android.media.MediaMetadata.METADATA_KEY_DURATION),
-                        "progress" to state?.position,
-                        "isPlaying" to (state?.state == PlaybackState.STATE_PLAYING)
-                    )
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    null
-                }
-            }
+            return mapOf(
+                    "packageName" to (packageName ?: controller.packageName),
+                    "title" to meta?.getString(MediaMetadata.METADATA_KEY_TITLE),
+                    "artist" to meta?.getString(MediaMetadata.METADATA_KEY_ARTIST),
+                    "album" to meta?.getString(MediaMetadata.METADATA_KEY_ALBUM),
+                    "duration" to meta?.getLong(MediaMetadata.METADATA_KEY_DURATION),
+                    "position" to state?.position,
+                    "playbackSpeed" to state?.playbackSpeed,
+                    "isPlaying" to (state?.state == PlaybackState.STATE_PLAYING)
+            )
         }
-        
+    }
+
+    private lateinit var sessionManager: MediaSessionManager
+
+    override fun onCreate() {
+        super.onCreate()
+        sessionManager = getSystemService(Context.MEDIA_SESSION_SERVICE) as MediaSessionManager
     }
 
     override fun onListenerConnected() {
         super.onListenerConnected()
-        sendActiveNotifications()
+        instance = this
+        updateActiveSession()
     }
 
-    private fun sendActiveNotifications() {
-        val active = activeNotifications ?: return
-        for (sbn in active) handleNotification(sbn)
+    override fun onListenerDisconnected() {
+        instance = null
+        super.onListenerDisconnected()
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
-        sbn?.let { handleNotification(it) }
+        if (shouldIgnore(sbn)) return
+        updateActiveSession()
     }
-
-    private fun handleNotification(sbn: StatusBarNotification) {
-
-        if (sbn.notification.category != Notification.CATEGORY_TRANSPORT) return
-    
-        val extras = sbn.notification.extras ?: return
-        val title = extras.getCharSequence("android.title")?.toString()
-        val artist = extras.getCharSequence("android.text")?.toString()
-    
-        val mediaSession = sbn.notification.extras.getParcelable(
-            Notification.EXTRA_MEDIA_SESSION,
-            android.media.session.MediaSession.Token::class.java
-        )
-        
-        if (mediaSession != null) {
-            activeToken = mediaSession
-            activePackage = sbn.packageName
-            activeTitle = title
-        }
-    
-        // Call getNowPlaying here
-        val nowPlaying = getNowPlaying(this)
-    
-        // Send through eventSink
-        nowPlaying?.let { eventSink?.success(it) }
-    }
-    
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {
-        if (sbn?.packageName == activePackage) {
-            activeToken = null
-            activePackage = null
-            activeTitle = null
+        if (shouldIgnore(sbn)) return
+        if (sbn?.packageName == activeToken?.let { MediaController(this, it).packageName }) {
+            updateActiveSession() 
         }
-        eventSink?.success(null)
+    }
+
+    private fun shouldIgnore(sbn: StatusBarNotification?): Boolean {
+        return sbn == null ||
+                sbn.notification.extras.getParcelable<MediaSession.Token>(
+                        Notification.EXTRA_MEDIA_SESSION,
+                        MediaSession.Token::class.java
+                ) == null
+    }
+
+    private fun updateActiveSession() {
+        try {
+            val componentName = ComponentName(this, MusicNotificationListener::class.java)
+            val sessions = sessionManager.getActiveSessions(componentName)
+
+            var targetController =
+                    sessions.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING }
+
+            if (targetController == null && sessions.isNotEmpty()) {
+                targetController = sessions[0]
+            }
+
+            if (targetController != null) {
+                activeToken = targetController.sessionToken
+
+                val data = controllerToMap(targetController, targetController.packageName)
+                eventSink?.success(data)
+            } else {
+                activeToken = null
+                eventSink?.success(null)
+            }
+        } catch (e: SecurityException) {} catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 }

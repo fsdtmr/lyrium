@@ -18,11 +18,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       themeMode: ThemeMode.system,
       theme: ThemeData.dark(useMaterial3: true),
       darkTheme: ThemeData.dark(useMaterial3: true),
       title: 'lyrium',
-      home: const HomePage(),
+      home: Scaffold(body: const HomePage()),
     );
   }
 }

@@ -2,15 +2,12 @@ import 'package:drift/drift.dart';
 import 'package:lyrium/service/service.dart';
 
 part 'local.g.dart';
-// -------------------
-// 
-// -------------------
 
 class Lyrics extends Table {
   IntColumn get id => integer().autoIncrement()();
+  TextColumn get namespace => text().withDefault(Constant("originid"))();
   TextColumn get originId => text().nullable()();
-  IntColumn get interlinked =>
-      integer().nullable().references(Lyrics, #id)(); 
+  IntColumn get interlinked => integer().nullable().references(Lyrics, #id)();
   IntColumn get language => integer().nullable()();
   TextColumn get title => text()();
   TextColumn get artist => text().nullable()();
@@ -23,20 +20,20 @@ class Lyrics extends Table {
   TextColumn get attachments => text().nullable()();
 }
 
-
 @DriftDatabase(tables: [Lyrics])
 class AppDatabase extends _$AppDatabase {
   final String name;
-  AppDatabase({this.name = "lyrium"}) : super(_openConnection(name));
+  AppDatabase({this.name = "lyrium"}) : super(openConnection(name));
 
   @override
-  int get schemaVersion => 1;
-}
+  int get schemaVersion => 2;
 
-// -------------------
-// CONNECTION HELPER
-// -------------------
-
-LazyDatabase _openConnection(String name) {
-  return openConnection(name);
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (migrator, from, to) async {
+      if (from == 1 && to == 2) {
+        await migrator.addColumn(lyrics, lyrics.namespace);
+      }
+    },
+  );
 }
