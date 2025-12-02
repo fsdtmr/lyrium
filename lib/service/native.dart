@@ -13,7 +13,6 @@ Future<QueryExecutor> openPlatformConnection(String name) async {
   return NativeDatabase(file);
 }
 
-
 class NotificationConnection {
   static const _eventChannel = EventChannel("com.example.lyrium");
   static const _methodChannel = MethodChannel("com.example.lyrium/methods");
@@ -35,8 +34,8 @@ class NotificationConnection {
   }
 
   static Future<Duration> getPosition() async {
-     final data =  await _methodChannel.invokeMethod<int?>("getPosition");
-      return Duration(milliseconds: data ?? 0);
+    final data = await _methodChannel.invokeMethod<int?>("getPosition");
+    return Duration(milliseconds: data ?? 0);
   }
 
   static Future<Image?> getImage() async {

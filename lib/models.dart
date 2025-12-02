@@ -23,14 +23,11 @@ class TrackInfo {
 
   static List<String> replacewithSpace = ["/"];
   TrackInfo clearTemplates() {
-    const clearTrackNames = ["Advertisement"];
-    const clearArtists = ["Recommended for you"];
-
     String clearedTrack = trackName;
     String clearedArtist = artistName;
     String clearedAlbum = albumName;
 
-    for (var e in clearTrackNames) {
+    for (var e in advertisement) {
       clearedTrack = replaceFirstCaseInsensitive(clearedTrack, e).trim();
     }
 
@@ -130,5 +127,29 @@ class LyricsTrack {
 
   static empty() {
     return LyricsTrack(id: -1, trackName: "", namespace: "Template");
+  }
+
+  LyricsTrack copyWith({
+    int? id,
+    String? namespace,
+    String? trackName,
+    String? artistName,
+    String? albumName,
+    double? duration,
+    bool? instrumental,
+    String? plainLyrics,
+    String? syncedLyrics,
+  }) {
+    return LyricsTrack(
+      id: id ?? this.id,
+      namespace: namespace ?? this.namespace,
+      trackName: trackName ?? this.trackName,
+      artistName: artistName ?? this.artistName,
+      albumName: albumName ?? this.albumName,
+      duration: duration ?? this.duration,
+      instrumental: instrumental ?? this.instrumental,
+      plainLyrics: plainLyrics ?? this.plainLyrics,
+      syncedLyrics: syncedLyrics ?? this.syncedLyrics,
+    );
   }
 }

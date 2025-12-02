@@ -6,7 +6,8 @@ class LRCLine {
   LRCLine({required this.timestamp, required this.text});
 }
 
-List<LRCLine> toLRCLineList(String lrcString) {
+const musicNoteString = "♫";
+List<LRCLine> toLRCLineList(String lrcString, [String gapstring = ""]) {
   final regex = RegExp(r'\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\](.*)');
   final lines = lrcString
       .split('\n')
@@ -22,7 +23,7 @@ List<LRCLine> toLRCLineList(String lrcString) {
           var text = match.group(4)!.trim();
 
           if (text == "") {
-            text = "♫";
+            text = gapstring;
           }
           return LRCLine(
             timestamp: Duration(
@@ -38,26 +39,12 @@ List<LRCLine> toLRCLineList(String lrcString) {
       .whereType<LRCLine>()
       .toList();
 
-  lines.insert(0, LRCLine(timestamp: Duration.zero, text: ""));
+  if ((lines.firstOrNull?.timestamp ?? Duration(seconds: 1)) != Duration.zero) {
+    lines.insert(0, LRCLine(timestamp: Duration.zero, text: ""));
+  }
 
   return lines;
 }
-
-/// Format to standard LRC string
-String toLRCString(List<LRCLine> lines) {
-  String two(int n) => n.toString().padLeft(2, '0');
-  String three(int n) => n.toString().padLeft(3, '0');
-  return lines
-      .map((l) {
-        final m = l.timestamp.inMinutes;
-        final s = l.timestamp.inSeconds % 60;
-        final ms = l.timestamp.inMilliseconds % 1000;
-        return '[${two(m)}:${two(s)}.${three(ms)}]${l.text}';
-      })
-      .join('\n');
-}
-
-
 
 extension LRCSpans on List<LRCLine> {
   toSpans() {
@@ -68,5 +55,54 @@ extension LRCSpans on List<LRCLine> {
     }
 
     return spans;
+  }
+
+  String toPlainText() {
+    this;
+    return map((e) => e.text).join("\n");
+  }
+
+  List<LRCLine> remapPlainText(String text2) {
+    final newPlaintext = text2.split("\n");
+
+    List<LRCLine> lines = [];
+    Duration lastduration = Duration.zero;
+    for (var i = 0; i < newPlaintext.length; i++) {
+      if (length - 1 < i) {
+        lines.add(
+          LRCLine(
+            timestamp: lastduration + Duration(milliseconds: i),
+            text: newPlaintext[i],
+          ),
+        );
+      } else {
+        lines.add(LRCLine(timestamp: this[i].timestamp, text: newPlaintext[i]));
+      }
+    }
+
+    return lines;
+  }
+
+  String toLRCString() {
+    String two(int n) => n.toString().padLeft(2, '0');
+    String three(int n) => n.toString().padLeft(3, '0');
+    return map((l) {
+      final m = l.timestamp.inMinutes;
+      final s = l.timestamp.inSeconds % 60;
+      final ms = l.timestamp.inMilliseconds % 1000;
+      return '[${two(m)}:${two(s)}.${three(ms)}]${l.text}';
+    }).join('\n');
+  }
+
+  bool validate() {
+    try {
+      if (isEmpty) return false;
+      if (this[1].text == "") return false;
+      if (last.text != "") return false;
+    } catch (e) {
+      return false;
+    }
+
+    return true;
   }
 }

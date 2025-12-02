@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:lyrium/controller.dart';
 import 'package:lyrium/editor.dart';
 import 'package:lyrium/utils/clock.dart';
 import 'package:lyrium/models.dart';
@@ -7,60 +8,20 @@ import 'package:lyrium/utils/duration.dart';
 import 'package:lyrium/utils/lrc.dart';
 import 'package:collection/collection.dart';
 
-abstract class LyricsController {
-  final LyricsTrack lyrics;
-
-  LyricsController({required this.lyrics});
-  Future<void> togglePause(bool b);
-  Future<void> seek(Duration duration);
-  Future<Duration> getPosition();
-
-  bool get isPlaying;
-  Duration? get atPosition;
-  Duration get duration;
-}
-
-class TempController extends LyricsController {
-  final Future<void> Function(bool) onTogglePause;
-  final Future<void> Function(Duration) onSeek;
-  final Future<Duration> Function() getPrimaryPosition;
-  @override
-  final Duration? atPosition;
-  @override
-  final bool isPlaying;
-  TempController({
-    required super.lyrics,
-    required this.onTogglePause,
-    required this.onSeek,
-    required this.getPrimaryPosition,
-    required this.isPlaying,
-    this.atPosition,
-  });
-
-  @override
-  Future<Duration> getPosition() => getPrimaryPosition();
-  @override
-  Future<void> seek(Duration duration) => onSeek(duration);
-  @override
-  Future<void> togglePause(bool b) => onTogglePause(b);
-  @override
-  Duration get duration => lyrics.duration.toDuration();
-}
-
 class LyricsView extends StatefulWidget {
   final LyricsController controller;
 
-  final Future<void> Function(LyricsTrack lyrics) onSave;
+  final Future<void> Function() onSave;
 
   final TextStyle? textStyle;
-  final TextStyle? highlighttextStyle;
+  final TextStyle? highlightTextStyle;
 
   const LyricsView({
     super.key,
     required this.controller,
     required this.onSave,
     this.textStyle,
-    this.highlighttextStyle,
+    this.highlightTextStyle,
   });
 
   @override
@@ -139,124 +100,131 @@ class _LyricsViewState extends State<LyricsView> {
       return const Center(child: Text("No lyrics available"));
     }
 
-    return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: NotificationListener<OverscrollIndicatorNotification>(
-          onNotification: (notification) {
-            if (animating) {
-              notification.disallowIndicator();
-            }
-            return true;
-          },
-          child: SingleChildScrollView(
-            child: RichText(
-              text: TextSpan(
-                children:
-                    lyrics
-                        .mapIndexed(
-                          (index, line) => TextSpan(
-                            children: [
-                              WidgetSpan(
-                                child: SizedBox.fromSize(
-                                  size: Size.zero,
-                                  key: keys[index],
+    return ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+      child: Scaffold(
+        body: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: NotificationListener<OverscrollIndicatorNotification>(
+            onNotification: (notification) {
+              if (animating) {
+                notification.disallowIndicator();
+              }
+              return true;
+            },
+            child: SingleChildScrollView(
+              child: RichText(
+                text: TextSpan(
+                  children:
+                      lyrics
+                          .mapIndexed(
+                            (index, line) => TextSpan(
+                              children: [
+                                WidgetSpan(
+                                  child: SizedBox.fromSize(
+                                    size: Size.zero,
+                                    key: keys[index],
+                                  ),
                                 ),
-                              ),
 
-                              TextSpan(
-                                text: "${line.text}\n",
-                                recognizer: TapGestureRecognizer()
-                                  ..onTap = () =>
-                                      incrementLyric(index - lyindex),
-                                style: index == lyindex
-                                    ? widget.highlighttextStyle
-                                    : widget.textStyle,
-                              ),
-                            ],
-                          ),
-                        )
-                        .toList() ??
-                    [],
+                                TextSpan(
+                                  text: "${line.text}\n",
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () =>
+                                        incrementLyric(index - lyindex),
+                                  style: index == lyindex
+                                      ? widget.highlightTextStyle
+                                      : widget.textStyle,
+                                ),
+                              ],
+                            ),
+                          )
+                          .toList() ??
+                      [],
+                ),
               ),
-            ),
-          ), // buildscrolling(),
+            ), // buildscrolling(),
+          ),
         ),
+
+        bottomNavigationBar: buildControls(context),
       ),
+    );
+  }
 
-      bottomNavigationBar: SizedBox(
-        height: 120, // Increased height
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Row(
-              children: [
-                SizedBox(width: 8.0),
-                Text(
-                  newPosition.toShortString(),
-                  style: const TextStyle(fontSize: 12),
-                ),
-                Expanded(
-                  child: Slider(value: position, onChanged: onSeeked),
-                ),
-                Text(
-                  widget.controller.lyrics.duration.toShortString() ?? "-----",
-                  style: const TextStyle(fontSize: 12),
-                ),
+  SizedBox buildControls(BuildContext context) {
+    return SizedBox(
+      height: 120, // Increased height
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            children: [
+              SizedBox(width: 8.0),
+              Text(
+                newPosition.toShortString(),
+                style: const TextStyle(fontSize: 12),
+              ),
+              Expanded(
+                child: Slider(value: position, onChanged: onSeeked),
+              ),
+              Text(
+                widget.controller.lyrics.duration.toShortString() ?? "-----",
+                style: const TextStyle(fontSize: 12),
+              ),
 
-                SizedBox(width: 8.0),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit_note),
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (c) =>
-                            LyricsEditor(track: widget.controller.lyrics),
-                      ),
-                    );
-                  },
+              SizedBox(width: 8.0),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.edit_note),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (c) =>
+                          LyricsEditor(track: widget.controller.lyrics),
+                    ),
+                  );
+                },
+              ),
+              Spacer(),
+              IconButton(
+                icon: const Icon(Icons.fast_rewind),
+                onPressed: () {
+                  incrementLyric(-1);
+                },
+              ),
+              IconButton(
+                icon: Icon(
+                  watchManager.paused ? Icons.play_arrow : Icons.pause,
                 ),
-                Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.fast_rewind),
-                  onPressed: () {
-                    incrementLyric(-1);
-                  },
-                ),
-                IconButton(
-                  icon: Icon(
-                    watchManager.paused ? Icons.play_arrow : Icons.pause,
-                  ),
-                  onPressed: () {
-                    watchManager.paused
-                        ? watchManager.play()
-                        : watchManager.pause();
+                onPressed: () {
+                  watchManager.paused
+                      ? watchManager.play()
+                      : watchManager.pause();
 
-                    widget.controller.togglePause(watchManager.paused);
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.fast_forward),
-                  onPressed: () {
-                    incrementLyric(1);
-                  },
-                ),
+                  widget.controller.togglePause(watchManager.paused);
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.fast_forward),
+                onPressed: () {
+                  incrementLyric(1);
+                },
+              ),
 
-                Spacer(),
+              Spacer(),
 
-                IconButton(
-                  onPressed: () => {},
-                  icon: Icon(Icons.bookmark_outline),
-                ),
-              ],
-            ),
-          ],
-        ),
+              IconButton(
+                onPressed: () => widget.onSave(),
+                icon: Icon(Icons.bookmark_outline),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -346,6 +314,7 @@ class _LyricsViewState extends State<LyricsView> {
 }
 
 extension LyricsTrackExt on LyricsTrack? {
-  List<LRCLine> get lines => toLRCLineList(this?.syncedLyrics ?? "");
+  List<LRCLine> get lines =>
+      toLRCLineList(this?.syncedLyrics ?? "", musicNoteString);
   String get editable => this?.syncedLyrics ?? this?.plainLyrics ?? "";
 }

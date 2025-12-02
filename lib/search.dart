@@ -1,6 +1,5 @@
 import 'package:lyrium/api.dart';
 import 'package:lyrium/controller.dart';
-import 'package:lyrium/editor.dart';
 import 'package:lyrium/models.dart';
 import 'package:flutter/material.dart';
 import 'package:lyrium/datahelper.dart';
@@ -23,9 +22,9 @@ class QuickSearch extends StatefulWidget {
 class _QuickSearchState extends State<QuickSearch> {
   static var lastquery = "";
   static var lastresults = <LyricsTrack>[];
-  static var setofquery = Set<String>();
+  static var setofquery = <String>{};
   final TextEditingController _controller = TextEditingController();
-  List<LyricsTrack> _results = [];
+  List<LyricsTrack>? _results;
   bool _loading = false;
   String? _error;
   SearchSource _mode = SearchSource.local;
@@ -40,6 +39,7 @@ class _QuickSearchState extends State<QuickSearch> {
   @override
   void initState() {
     initailQuery = widget.initailQuery?.clearTemplates();
+
     _controller.text = initailQuery != null
         ? "${initailQuery?.trackName} - ${initailQuery?.artistName}"
         : lastquery;
@@ -143,8 +143,12 @@ class _QuickSearchState extends State<QuickSearch> {
                       if (selected) {
                         setState(() {
                           _mode = SearchSource.global;
+
                           _results = lastresults;
                           _error = null;
+                          if (lastresults.isEmpty) {
+                            _search();
+                          }
                         });
                       }
                     },
@@ -181,10 +185,13 @@ class _QuickSearchState extends State<QuickSearch> {
             Expanded(
               child: Center(
                 child: query.isEmpty
-                    ? _buildDefaultOptions(context)
-                    : _results.isEmpty
-                    ? _buildNoResults()
-                    : ResultsListView(songs: _results, query: _controller.text),
+                    ? _buildNoResults('', Icons.search)
+                    : _results?.isEmpty ?? true
+                    ? _buildNoResults('Not Found', Icons.search_off)
+                    : ResultsListView(
+                        songs: _results!,
+                        query: _controller.text,
+                      ),
               ),
             ),
           ],
@@ -193,26 +200,17 @@ class _QuickSearchState extends State<QuickSearch> {
     );
   }
 
-  Widget _buildNoResults() {
+  Widget _buildNoResults(String name, IconData icon) {
     return Consumer<MusicController>(
       builder: (BuildContext context, MusicController value, Widget? child) {
         return Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.search_off, size: 80, color: Colors.grey),
+            Icon(icon, size: 80, color: Colors.grey),
             const SizedBox(height: 16),
-            const Text(
-              'Not Found',
+            Text(
+              name,
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (c) => LyricsEditor(track: LyricsTrack.empty()),
-                ),
-              ),
-              child: const Text("Add New"),
             ),
           ],
         );
@@ -285,21 +283,8 @@ class _QuickSearchState extends State<QuickSearch> {
     setState(() {});
   }
 
-  _buildDefaultOptions(BuildContext context) {
-    return ListView(
-      children: [
-        ListTile(
-          leading: Icon(Icons.add),
-          title: Text("Create New"),
-          subtitle: Text("Title - Artist"),
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (c) => LyricsEditor(track: LyricsTrack.empty()),
-            ),
-          ),
-        ),
-      ],
-    );
+  _buildSubmit() {
+    return TextButton(onPressed: _search, child: Text("Find"));
   }
 }
 

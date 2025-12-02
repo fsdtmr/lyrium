@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lyrium/api.dart';
 import 'package:lyrium/datahelper.dart';
+import 'package:lyrium/editor.dart';
 import 'package:lyrium/service/service.dart';
 import 'package:lyrium/models.dart';
 import 'package:lyrium/utils/duration.dart';
+import 'package:lyrium/widgets/submit_form.dart';
 
 class MusicController extends ChangeNotifier {
   TrackInfo? info;
@@ -206,4 +208,78 @@ class MusicController extends ChangeNotifier {
     info = newinfo;
     notifyListeners();
   }
+
+  openEditor(context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (c) => LyricsEditor(track: LyricsTrack.empty()),
+      ),
+    );
+  }
+
+  void submitLyrics(BuildContext context) {
+    if (lyrics is DraftTrack) opensubmitform(context, lyrics as DraftTrack);
+  }
+}
+
+abstract class LyricsController {
+  final LyricsTrack lyrics;
+
+  LyricsController({required this.lyrics});
+  Future<void> togglePause(bool b);
+  Future<void> seek(Duration duration);
+  Future<Duration> getPosition();
+
+  bool get isPlaying;
+  Duration? get atPosition;
+  Duration get duration;
+}
+
+class TempController extends LyricsController {
+  final Future<void> Function(bool) onTogglePause;
+  final Future<void> Function(Duration) onSeek;
+  final Future<Duration> Function() getPrimaryPosition;
+  @override
+  final Duration? atPosition;
+  @override
+  final bool isPlaying;
+  TempController({
+    required super.lyrics,
+    required this.onTogglePause,
+    required this.onSeek,
+    required this.getPrimaryPosition,
+    required this.isPlaying,
+    this.atPosition,
+  });
+
+  @override
+  Future<Duration> getPosition() => getPrimaryPosition();
+  @override
+  Future<void> seek(Duration duration) => onSeek(duration);
+  @override
+  Future<void> togglePause(bool b) => onTogglePause(b);
+  @override
+  Duration get duration => lyrics.duration?.toDuration() ?? Duration(hours: 1);
+}
+
+class NoOpController extends LyricsController {
+  NoOpController({required super.lyrics});
+
+  @override
+  Duration? get atPosition => Duration.zero;
+
+  @override
+  Future<Duration> getPosition() async => Duration.zero;
+  @override
+  bool get isPlaying => true;
+
+  @override
+  Future<void> seek(Duration duration) async {}
+
+  @override
+  Future<void> togglePause(bool b) async {}
+
+  @override
+  // TODO: implement duration
+  Duration get duration => lyrics.duration?.toDuration() ?? Duration(hours: 1);
 }

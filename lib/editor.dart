@@ -1,10 +1,11 @@
-import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
-import 'package:lyrium/datahelper.dart';
+import 'package:lyrium/controller.dart';
 import 'package:lyrium/models.dart';
-import 'package:lyrium/storage/local.dart';
+import 'package:lyrium/utils/duration.dart';
+import 'package:lyrium/utils/lrc.dart';
 import 'package:lyrium/viewer.dart';
-import 'package:pretty_diff_text/pretty_diff_text.dart';
+import 'package:lyrium/widgets/scrollable_area.dart';
+import 'package:lyrium/widgets/submit_form.dart';
 
 class LyricsEditor extends StatefulWidget {
   final LyricsTrack track;
@@ -17,8 +18,12 @@ class LyricsEditor extends StatefulWidget {
 
 class _LyricsEditorState extends State<LyricsEditor> {
   final TextEditingController textEditingController = TextEditingController();
+  final TextEditingController secondarytextEditingController =
+      TextEditingController();
   final FocusNode _focusNode = FocusNode();
   final UndoHistoryController _undoController = UndoHistoryController();
+  final UndoHistoryController _secondaryUndoController =
+      UndoHistoryController();
 
   static const _plaintextMode = [false, true];
   static const _lrctextMode = [true, false];
@@ -27,6 +32,8 @@ class _LyricsEditorState extends State<LyricsEditor> {
 
   late String initial;
   late TrackInfo info;
+
+  Duration duration = Durations.medium1;
   @override
   void initState() {
     super.initState();
@@ -50,7 +57,6 @@ class _LyricsEditorState extends State<LyricsEditor> {
               if (!(await showDiscardChangesDialog(context))) {
                 return;
               }
-              ;
             }
 
             Navigator.of(context).pop();
@@ -58,11 +64,36 @@ class _LyricsEditorState extends State<LyricsEditor> {
         ),
         title: Text("Editing ${info.trackName} "),
         actions: [
-          IconButton(
-            onPressed: () {
-              opensubmitform(context);
+          ValueListenableBuilder<UndoHistoryValue>(
+            valueListenable: modeSelected == _lrctextMode
+                ? _undoController
+                : _secondaryUndoController,
+            builder: (context, value, _) {
+              return Row(
+                children: [
+                  IconButton(
+                    isSelected: value.canUndo,
+                    onPressed: () async {
+                      if (!value.canUndo) {
+                        textEditingController.text = initial;
+                        final confirmed = await showDiscardChangesDialog(
+                          context,
+                        );
+                        if (confirmed) {}
+                      } else {
+                        _undoController.undo();
+                      }
+                    },
+                    icon: Icon(Icons.undo),
+                  ),
+                  IconButton(
+                    isSelected: value.canRedo,
+                    onPressed: () => _undoController.redo(),
+                    icon: Icon(Icons.redo),
+                  ),
+                ],
+              );
             },
-            icon: const Icon(Icons.done),
           ),
         ],
       ),
@@ -74,73 +105,73 @@ class _LyricsEditorState extends State<LyricsEditor> {
               children: [
                 Expanded(
                   child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20),
+                    padding: EdgeInsets.only(left: 20),
                     child: ScrollableArea(
-                      child: TextField(
-                        autofocus: true,
-                        minLines: 100,
-                        maxLines: null,
-                        controller: textEditingController,
-                        focusNode: _focusNode,
-                        undoController: _undoController, // ← key line
-                        style: TextStyle(fontSize: 22),
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
+                      child: switch (modeSelected) {
+                        _lrctextMode => TextField(
+                          autofocus: true,
+                          minLines: 100,
+                          maxLines: null,
+                          controller: textEditingController,
+                          focusNode: _focusNode,
+                          undoController: _undoController,
+                          style: TextStyle(fontSize: 22),
+                          decoration: InputDecoration(
+                            hintText: "[mm:ss.mss] La La La....",
+                            border: InputBorder.none,
+                          ),
                         ),
-                      ),
+
+                        _plaintextMode => TextField(
+                          autofocus: true,
+                          minLines: 100,
+                          maxLines: null,
+                          controller: secondarytextEditingController,
+                          undoController: _secondaryUndoController,
+                          focusNode: _focusNode,
+                          style: TextStyle(fontSize: 22),
+                          decoration: InputDecoration(
+                            hintText: "La La La....",
+                            border: InputBorder.none,
+                          ),
+                        ),
+
+                        [...] => throw UnimplementedError(),
+                      },
                     ),
                   ),
                 ),
 
                 Row(
                   children: [
-                    ToggleButtons(
-                      isSelected: modeSelected,
-                      children: [
-                        IconButton(
-                          onPressed: () {
-                            setState(() => modeSelected = _lrctextMode);
-                          },
-                          icon: const Icon(Icons.list_alt),
-                        ),
-                        IconButton(
-                          onPressed: () {
-                            setState(() => modeSelected = _plaintextMode);
-                          },
-                          icon: const Icon(Icons.text_fields),
-                        ),
-                      ],
+                    IconButton(
+                      isSelected: modeSelected == _lrctextMode,
+
+                      onPressed: () {
+                        switchtoLRC();
+                      },
+                      icon: const Icon(Icons.list_alt),
+                    ),
+                    IconButton(
+                      isSelected: modeSelected == _plaintextMode,
+                      onPressed: () {
+                        switchtoPlain();
+                      },
+                      icon: const Icon(Icons.text_fields),
                     ),
 
                     const Spacer(),
 
-                    ValueListenableBuilder<UndoHistoryValue>(
-                      valueListenable: _undoController,
-                      builder: (context, value, _) {
-                        return Row(
-                          children: [
-                            IconButton(
-                              isSelected: value.canUndo,
-                              onPressed: () async {
-                                if (!value.canUndo) {
-                                  textEditingController.text = initial;
-                                  final confirmed =
-                                      await showDiscardChangesDialog(context);
-                                  if (confirmed) {}
-                                } else {
-                                  _undoController.undo();
-                                }
-                              },
-                              icon: Icon(Icons.undo),
-                            ),
-                            IconButton(
-                              isSelected: value.canRedo,
-                              onPressed: () => _undoController.redo(),
-                              icon: Icon(Icons.redo),
-                            ),
-                          ],
-                        );
+                    TextButton.icon(
+                      label: Text("Next"),
+                      onPressed: () {
+                        if (modeSelected != _lrctextMode) {
+                          switchtoLRC();
+                          return;
+                        }
+                        openViewer(context);
                       },
+                      icon: const Icon(Icons.done),
                     ),
                   ],
                 ),
@@ -152,15 +183,19 @@ class _LyricsEditorState extends State<LyricsEditor> {
     );
   }
 
-  Future<dynamic> opensubmitform(BuildContext context) {
-    return showDialog(
-      context: context,
-      builder: (c) {
-        return Dialog.fullscreen(
-          child: ArtworkForm(from: initial, to: textEditingController.text),
-        );
-      },
+  void switchtoPlain() {
+    secondarytextEditingController.text = toLRCLineList(
+      textEditingController.text,
+    ).toPlainText();
+    setState(() => modeSelected = _plaintextMode);
+  }
+
+  void switchtoLRC() {
+    textEditingController.text = remapPlainText(
+      textEditingController.text,
+      secondarytextEditingController.text,
     );
+    setState(() => modeSelected = _lrctextMode);
   }
 
   Future<bool> showDiscardChangesDialog(BuildContext context) async {
@@ -184,109 +219,95 @@ class _LyricsEditorState extends State<LyricsEditor> {
       return v ?? false;
     });
   }
-}
 
-class ArtworkForm extends StatefulWidget {
-  final String from;
-  final String to;
+  static String remapPlainText(String text, String text2) {
+    text = text
+        .split("\n")
+        .map((e) {
+          var l = e.split("]");
+          if (l.length == 2) {
+            return e;
+          }
+          return "[00:00.000]$e";
+        })
+        .join("\n");
+    return toLRCLineList(text).remapPlainText(text2).toLRCString();
+  }
 
-  const ArtworkForm({super.key, required this.from, required this.to});
-  @override
-  _ArtworkFormState createState() => _ArtworkFormState();
-}
+  void openViewer(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (c) {
+          final textColor =
+              Theme.of(context).textTheme.bodyMedium?.color ?? Colors.black;
 
-class _ArtworkFormState extends State<ArtworkForm> {
-  final _formKey = GlobalKey<FormState>();
+          var textStyle = TextStyle(
+            fontSize: 40,
 
-  final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _artistController = TextEditingController();
+            fontWeight: FontWeight.w800,
+            color: textColor.withAlpha(127),
+          );
+          var highlighttextStyle = TextStyle(
+            fontSize: 40,
+            fontWeight: FontWeight.w800,
+            color: textColor,
+          );
+          final lrcln = toLRCLineList(textEditingController.text);
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text("Artwork Form")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          onChanged: () => setState(() {}),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextFormField(
-                controller: _titleController,
-                decoration: InputDecoration(labelText: "Title"),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return "Please enter a title";
-                  }
-                  return null;
-                },
+          return LyricsView(
+            textStyle: textStyle,
+            highlightTextStyle: highlighttextStyle,
+            controller: NoOpController(
+              lyrics: widget.track.copyWith(
+                syncedLyrics: textEditingController.text,
+                duration:
+                    lrcln.lastOrNull?.timestamp.toDouble() ??
+                    Duration(hours: 1).toDouble(),
               ),
-              TextFormField(
-                controller: _artistController,
-                decoration: InputDecoration(labelText: "Artist"),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return "Please enter an artist name";
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 16),
-
-              Expanded(
-                child: ScrollableArea(
-                  child: PrettyDiffText(
-                    defaultTextStyle: TextStyle(fontSize: 32),
-                    oldText: widget.from,
-                    newText: widget.to,
-                  ),
-                ),
-              ),
-
-              SizedBox(height: 24),
-
-              TextButton(
-                onPressed: _formKey.currentState?.validate() ?? false
-                    ? () {
-                        DataHelper.instance
-                            .insertDraft(
-                              _titleController.text,
-                              _artistController.text,
-                              widget.to,
-                            )
-                            .then((c) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Saved')),
-                              );
-                            });
-                      }
-                    : null,
-                child: Text("Submit"),
-              ),
-            ],
-          ),
-        ),
+            ),
+            onSave: () {
+              return opensubmitform(
+                context,
+                DraftTrack.from(widget.track, textEditingController.text),
+              );
+            },
+          );
+        },
       ),
     );
   }
 }
 
-class ScrollableArea extends StatelessWidget {
-  final Widget child;
-  const ScrollableArea({super.key, required this.child});
+class DraftTrack extends LyricsTrack {
+  final String newText;
 
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: SizedBox(
-          width: MediaQuery.of(context).size.width + 300,
-          child: child,
-        ),
-      ),
+  DraftTrack({
+    required super.id,
+    required super.trackName,
+    super.namespace = "Draft",
+    required this.newText,
+
+    super.artistName,
+    super.albumName,
+    super.duration,
+    super.instrumental,
+    super.plainLyrics,
+    super.syncedLyrics,
+  });
+
+  factory DraftTrack.from(LyricsTrack track, String s) {
+    return DraftTrack(
+      newText: s,
+
+      id: track.id,
+      trackName: track.trackName,
+      artistName: track.artistName,
+      albumName: track.albumName,
+      duration: track.duration,
+      instrumental: track.instrumental,
+      plainLyrics: track.plainLyrics,
+      syncedLyrics: track.syncedLyrics,
     );
   }
 }

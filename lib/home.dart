@@ -3,6 +3,7 @@ import 'package:lyrium/controller.dart';
 import 'package:lyrium/editor.dart';
 import 'package:lyrium/models.dart';
 import 'package:lyrium/search.dart';
+import 'package:lyrium/widgets/submit_form.dart';
 import 'package:provider/provider.dart';
 import 'package:lyrium/viewer.dart';
 
@@ -41,14 +42,50 @@ class _HomePageState extends State<HomePage> {
       builder: (context) {
         if (ctrl.showTrack) {
           return Scaffold(
+            drawer: buildDrawer(),
             appBar: ctrl.lyrics == null
                 ? AppBar(
-                    leading: IconButton(
-                      onPressed: () => ctrl.setShowTrackMode(false),
-                      icon: RotatedBox(
-                        quarterTurns: 1,
-                        child: Icon(Icons.chevron_right),
+                    leading: FutureBuilder(
+                      future: ctrl.image,
+                      builder: (c, s) => Padding(
+                        padding: EdgeInsetsGeometry.all(8.0),
+                        child: SizedBox(
+                          width: 30,
+                          height: 30,
+                          child: s.data ?? Icon(Icons.music_note),
+                        ),
                       ),
+                    ),
+                    title: Row(
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              ctrl.info?.trackName ??
+                                  ctrl.lyrics?.trackName ??
+                                  "No Track",
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              ctrl.info?.artistName ??
+                                  ctrl.lyrics?.trackName ??
+                                  "No Artist",
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ],
+                        ),
+
+                        Spacer(),
+
+                        IconButton(
+                          onPressed: () => ctrl.setShowTrackMode(false),
+                          icon: RotatedBox(
+                            quarterTurns: 1,
+                            child: Icon(Icons.chevron_right),
+                          ),
+                        ),
+                      ],
                     ),
                   )
                 : AppBar(
@@ -59,7 +96,7 @@ class _HomePageState extends State<HomePage> {
                         child: SizedBox(
                           width: 30,
                           height: 30,
-                          child: s.data ?? SizedBox(),
+                          child: s.data ?? Icon(Icons.music_note),
                         ),
                       ),
                     ),
@@ -96,7 +133,15 @@ class _HomePageState extends State<HomePage> {
             body: buildcontent(ctrl),
           );
         } else {
-          return Scaffold(body: QuickSearch(initailQuery: ctrl.info));
+          return Scaffold(
+            floatingActionButton: FloatingActionButton.extended(
+              onPressed: () => ctrl.openEditor(context),
+              label: Text("Crate New"),
+              icon: Icon(Icons.add),
+            ),
+
+            body: QuickSearch(initailQuery: ctrl.info),
+          );
         }
       },
     );
@@ -157,8 +202,11 @@ class _HomePageState extends State<HomePage> {
               onSeek: ctrl.seekTo,
             ),
             textStyle: textStyle,
-            highlighttextStyle: highlighttextStyle,
-            onSave: (s) => ctrl.startLyricsSaved(s),
+            highlightTextStyle: highlighttextStyle,
+            onSave: () => opensubmitform(
+              context,
+              DraftTrack.from(ctrl.lyrics!, ctrl.lyrics!.syncedLyrics!),
+            ),
           ),
         );
       },
@@ -282,6 +330,9 @@ class _HomePageState extends State<HomePage> {
     if (ctrl == null) {
       return LinearProgressIndicator();
     }
+    if (ctrl.hasAccess) {
+      return IconButton(onPressed: () {}, icon: Icon(Icons.search));
+    }
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -293,6 +344,22 @@ class _HomePageState extends State<HomePage> {
           child: const Text("Grant Access"),
         ),
       ],
+    );
+  }
+
+  void showDrawer() {}
+
+  Drawer buildDrawer() {
+    return Drawer(
+      child: ListView(
+        children: [
+          ListTile(
+            onTap: () => {},
+            leading: Icon(Icons.settings),
+            title: Text("Settings"),
+          ),
+        ],
+      ),
     );
   }
 }
