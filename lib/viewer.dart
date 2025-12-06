@@ -15,14 +15,17 @@ class LyricsView extends StatefulWidget {
 
   final TextStyle? textStyle;
   final TextStyle? highlightTextStyle;
-
+  final bool? editMode;
   const LyricsView({
     super.key,
     required this.controller,
     required this.onSave,
     this.textStyle,
     this.highlightTextStyle,
+    this.editMode,
   });
+
+  bool get isEditMode => editMode ?? false;
 
   @override
   State<LyricsView> createState() => _LyricsViewState();
@@ -182,12 +185,14 @@ class _LyricsViewState extends State<LyricsView> {
               IconButton(
                 icon: const Icon(Icons.edit_note),
                 onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (c) =>
-                          LyricsEditor(track: widget.controller.lyrics),
-                    ),
-                  );
+                  widget.isEditMode
+                      ? Navigator.pop(context)
+                      : Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (c) =>
+                                LyricsEditor(track: widget.controller.lyrics),
+                          ),
+                        );
                 },
               ),
               Spacer(),

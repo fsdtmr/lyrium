@@ -47,15 +47,7 @@ class _HomePageState extends State<HomePage> {
             body: buildcontent(ctrl),
           );
         } else {
-          return Scaffold(
-            floatingActionButton: FloatingActionButton.extended(
-              onPressed: () => ctrl.openEditor(context),
-              label: Text("Crate New"),
-              icon: Icon(Icons.add),
-            ),
-
-            body: QuickSearch(initailQuery: ctrl.info),
-          );
+          return QuickSearch(initailQuery: ctrl.info);
         }
       },
     );
