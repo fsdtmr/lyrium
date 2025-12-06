@@ -184,13 +184,15 @@ class _LyricsEditorState extends State<LyricsEditor> {
 
                     TextButton.icon(
                       label: Text("Next"),
-                      onPressed: () {
-                        if (modeSelected != _lrctextMode) {
-                          switchtoLRC();
-                          return;
-                        }
-                        openViewer(context);
-                      },
+                      onPressed: textEditingController.text.isEmpty
+                          ? null
+                          : () {
+                              if (modeSelected != _lrctextMode) {
+                                switchtoLRC();
+                                return;
+                              }
+                              openViewer(context);
+                            },
                       icon: const Icon(Icons.done),
                     ),
                   ],
@@ -279,6 +281,7 @@ class _LyricsEditorState extends State<LyricsEditor> {
           final lrcln = toLRCLineList(textEditingController.text);
 
           return LyricsView(
+            editMode: true,
             textStyle: textStyle,
             highlightTextStyle: highlighttextStyle,
             controller: NoOpController(

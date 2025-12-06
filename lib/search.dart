@@ -111,6 +111,16 @@ class _QuickSearchState extends State<QuickSearch> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: query.isNotEmpty
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () => Provider.of<MusicController>(
+                context,
+                listen: false,
+              ).openEditor(context),
+              label: Text("Create New"),
+              icon: Icon(Icons.add),
+            ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
