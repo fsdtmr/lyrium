@@ -84,7 +84,7 @@ jobs:
           tag_name: v${{ steps.check_version.outputs.version }}
           name: Release v${{ steps.check_version.outputs.version }}
           draft: false
-          prerelease: false
+          prerelease: true
           generate_release_notes: true
           files: |
             build/app/outputs/flutter-apk/app-release.apk
