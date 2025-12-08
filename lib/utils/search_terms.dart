@@ -67,15 +67,17 @@ class SearchTerms {
   }
 }
 
-extension ClearInof on TrackInfo {
+extension ClearTemplate on TrackInfo {
   static List<String> advertisement = ["Advertisement", "Sponsored"];
   static List<String> clearArtists = [
     "•",
     "Recommended for you",
     "Unknown Artist",
+    "- Topic",
   ];
 
   static List<String> replacewithSpace = ["/"];
+  static List<String> replacewithBlank = ["VEVO"];
   TrackInfo clearTemplates() {
     String clearedTrack = trackName;
     String clearedArtist = artistName;
@@ -91,6 +93,9 @@ extension ClearInof on TrackInfo {
 
     for (var e in replacewithSpace) {
       clearedArtist = clearedArtist.replaceAll(e, " ").trim();
+    }
+    for (var e in replacewithBlank) {
+      clearedArtist = clearedArtist.replaceAll(e, "").trim();
     }
 
     return TrackInfo(
