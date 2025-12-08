@@ -46,8 +46,10 @@ class _LyricsViewState extends State<LyricsView> {
   void initState() {
     duration = widget.controller.duration;
 
-    lyrics = widget.controller.lyrics.lines;
+    lyrics = widget.controller.lyrics.lines.withDuration;
     keys = List<GlobalKey>.generate(lyrics.length, (i) => GlobalKey());
+
+    buildSpans();
 
     watchManager = ClockManager((Duration elapsed) {
       if (mounted) {
@@ -60,7 +62,7 @@ class _LyricsViewState extends State<LyricsView> {
           newPosition = elapsed;
           position = elapsed.inMilliseconds / duration.inMilliseconds;
 
-          lyindex = findlyric(newPosition);
+          lyindex = lyrics.position(newPosition, lyindex);
         });
         scrollto(lyindex);
       }
@@ -97,6 +99,34 @@ class _LyricsViewState extends State<LyricsView> {
     super.didUpdateWidget(oldWidget);
   }
 
+  late List<TextSpan> spans;
+
+  buildSpans() {
+    spans = lyrics
+        .mapIndexed(
+          (index, line) => TextSpan(
+            children: [
+              WidgetSpan(
+                child: SizedBox.fromSize(size: Size.zero, key: keys[index]),
+              ),
+              TextSpan(
+                text: "${line.text}\n",
+                recognizer: TapGestureRecognizer()
+                  ..onTap = () => incrementLyric(index - lyindex),
+                style: index == lyindex
+                    ? widget.highlightTextStyle
+                    : widget.textStyle,
+              ),
+            ],
+          ),
+        )
+        .toList();
+  }
+
+  higlight() {
+    buildSpans();
+  }
+
   @override
   Widget build(BuildContext context) {
     if (lyrics.isEmpty) {
@@ -116,36 +146,7 @@ class _LyricsViewState extends State<LyricsView> {
               return true;
             },
             child: SingleChildScrollView(
-              child: RichText(
-                text: TextSpan(
-                  children:
-                      lyrics
-                          .mapIndexed(
-                            (index, line) => TextSpan(
-                              children: [
-                                WidgetSpan(
-                                  child: SizedBox.fromSize(
-                                    size: Size.zero,
-                                    key: keys[index],
-                                  ),
-                                ),
-
-                                TextSpan(
-                                  text: "${line.text}\n",
-                                  recognizer: TapGestureRecognizer()
-                                    ..onTap = () =>
-                                        incrementLyric(index - lyindex),
-                                  style: index == lyindex
-                                      ? widget.highlightTextStyle
-                                      : widget.textStyle,
-                                ),
-                              ],
-                            ),
-                          )
-                          .toList() ??
-                      [],
-                ),
-              ),
+              child: RichText(text: TextSpan(children: spans)),
             ), // buildscrolling(),
           ),
         ),
@@ -240,43 +241,12 @@ class _LyricsViewState extends State<LyricsView> {
     setState(() {
       position = value;
 
-      lyindex = findlyric(newPosition);
+      lyindex = lyrics.position(newPosition, lyindex); //findlyric(newPosition);
     });
 
     watchManager.seek(newPosition);
 
     widget.controller.seek(newPosition);
-  }
-
-  int prevIndex = 0;
-  int findlyric(Duration newPosition) {
-    if (lyrics.isEmpty) return -1;
-
-    int left = 0;
-    int right = lyrics.length - 1;
-    int resultIndex = 0;
-
-    if (prevIndex >= 0 && prevIndex < lyrics.length) {
-      if (lyrics[prevIndex].timestamp <= newPosition) {
-        left = prevIndex;
-      } else {
-        right = prevIndex;
-      }
-    }
-
-    while (left <= right) {
-      int mid = left + ((right - left) >> 1);
-      if (lyrics[mid].timestamp <= newPosition) {
-        resultIndex = mid;
-        left = mid + 1;
-      } else {
-        right = mid - 1;
-      }
-    }
-
-    prevIndex = resultIndex;
-
-    return resultIndex;
   }
 
   void incrementLyric(int i) {
@@ -287,6 +257,7 @@ class _LyricsViewState extends State<LyricsView> {
       lyindex = nextindex;
       newPosition = lyrics[lyindex].timestamp;
       position = newPosition.inMilliseconds / duration.inMilliseconds;
+      higlight();
     });
 
     watchManager.seek(newPosition);
@@ -299,7 +270,7 @@ class _LyricsViewState extends State<LyricsView> {
 
   void scrollto(int lyindex) {
     if (animatingto == lyindex) return;
-
+    higlight();
     animating = true;
 
     final context = keys[lyindex].currentContext;
@@ -318,8 +289,12 @@ class _LyricsViewState extends State<LyricsView> {
   }
 }
 
+extension on List<Line> {
+  List<LRCLine> get withDuration => whereType<LRCLine>().toList();
+}
+
 extension LyricsTrackExt on LyricsTrack? {
-  List<LRCLine> get lines =>
+  List<Line> get lines =>
       toLRCLineList(this?.syncedLyrics ?? "", musicNoteString);
   String get editable => this?.syncedLyrics ?? this?.plainLyrics ?? "";
 }

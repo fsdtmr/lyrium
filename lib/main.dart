@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:lyrium/controller.dart';
 import 'package:lyrium/home.dart';
+import 'package:lyrium/widgets/settings.dart';
 import 'package:provider/provider.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
-void main() {
+Future<void> main() async {
+  packageInfo = await PackageInfo.fromPlatform();
   runApp(
     ChangeNotifierProvider(
       create: (_) => MusicController(),

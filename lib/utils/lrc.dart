@@ -1,18 +1,27 @@
 import 'package:flutter/widgets.dart';
 
-class LRCLine {
+class Line {
+  get text => null;
+}
+
+class LRCLine implements Line {
   final Duration timestamp;
   final String text;
   LRCLine({required this.timestamp, required this.text});
 }
 
+class EmptyLine implements Line {
+  @override
+  get text => "\n";
+}
+
 const musicNoteString = "♫";
-List<LRCLine> toLRCLineList(String lrcString, [String gapstring = ""]) {
+List<Line> toLRCLineList(String lrcString, [String gapstring = ""]) {
   final regex = RegExp(r'\[(\d{2}):(\d{2})(?:\.(\d{2}))?\](.*)');
   final lines = lrcString
       .split('\n')
-      .where((line) => line.isNotEmpty)
       .map((line) {
+        if (line.isEmpty) return EmptyLine();
         final match = regex.firstMatch(line);
         if (match != null) {
           final minutes = int.parse(match.group(1)!);
@@ -46,26 +55,16 @@ List<LRCLine> toLRCLineList(String lrcString, [String gapstring = ""]) {
   return lines;
 }
 
-extension LRCSpans on List<LRCLine> {
-  toSpans() {
-    List<TextSpan> spans = [];
-
-    for (var element in this) {
-      spans.add(TextSpan(text: " ${element.text}."));
-    }
-
-    return spans;
-  }
-
+extension LRCString on List<Line> {
   String toPlainText() {
     this;
     return map((e) => e.text).join("\n");
   }
 
-  List<LRCLine> remapPlainText(String text2) {
+  List<Line> remapPlainText(String text2) {
     final newPlaintext = text2.split("\n");
 
-    List<LRCLine> lines = [];
+    List<Line> lines = [];
     Duration lastduration = Duration.zero;
     for (var i = 0; i < newPlaintext.length; i++) {
       final npt = newPlaintext[i].trim();
@@ -77,7 +76,13 @@ extension LRCSpans on List<LRCLine> {
           ),
         );
       } else {
-        lines.add(LRCLine(timestamp: this[i].timestamp, text: npt));
+        if (this[i] is LRCLine) {
+          lines.add(
+            LRCLine(timestamp: (this[i] as LRCLine).timestamp, text: npt),
+          );
+        } else {
+          lines.add(EmptyLine());
+        }
       }
     }
 
@@ -87,10 +92,14 @@ extension LRCSpans on List<LRCLine> {
   String toLRCString() {
     String two(int n) => n.toString().padLeft(2, '0');
     return map((l) {
-      final m = l.timestamp.inMinutes;
-      final s = l.timestamp.inSeconds % 60;
-      final ms = l.timestamp.inMilliseconds % 100;
-      return '[${two(m)}:${two(s)}.${two(ms)}] ${l.text}';
+      if (l is LRCLine) {
+        final m = l.timestamp.inMinutes;
+        final s = l.timestamp.inSeconds % 60;
+        final ms = l.timestamp.inMilliseconds % 100;
+        return '[${two(m)}:${two(s)}.${two(ms)}] ${l.text}';
+      } else {
+        return "";
+      }
     }).join('\n');
   }
 
@@ -104,5 +113,58 @@ extension LRCSpans on List<LRCLine> {
     }
 
     return true;
+  }
+
+  Duration get duration => findlastduration(); // Duration.zero;
+
+  Duration findlastduration() {
+    final line = lastWhere(
+      (t) => t is LRCLine,
+      orElse: () => LRCLine(timestamp: Duration(hours: 1), text: ""),
+    );
+
+    return (line as LRCLine).timestamp;
+  }
+}
+
+extension LRCSpans on List<LRCLine> {
+  toSpans() {
+    List<TextSpan> spans = [];
+
+    for (var element in this) {
+      spans.add(TextSpan(text: " ${element.text}."));
+    }
+
+    return spans;
+  }
+
+  int position(Duration time, [int startFrom = 0]) {
+    if (this.isEmpty) return -1;
+
+    int left = 0;
+    int right = this.length - 1;
+    int resultIndex = 0;
+
+    if (startFrom >= 0 && startFrom < this.length) {
+      if (this[startFrom].timestamp <= time) {
+        left = startFrom;
+      } else {
+        right = startFrom;
+      }
+    }
+
+    while (left <= right) {
+      int mid = left + ((right - left) >> 1);
+      if (this[mid].timestamp <= time) {
+        resultIndex = mid;
+        left = mid + 1;
+      } else {
+        right = mid - 1;
+      }
+    }
+
+    startFrom = resultIndex;
+
+    return resultIndex;
   }
 }

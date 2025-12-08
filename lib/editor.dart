@@ -42,6 +42,13 @@ class _LyricsEditorState extends State<LyricsEditor> {
     initial = widget.track.editable;
     modeSelected = _lrctextMode;
     textEditingController.text = initial;
+
+    Future.microtask(() async {
+      while (mounted) {
+        await Future.delayed(Durations.extralong4);
+        setState(() {});
+      }
+    });
   }
 
   TextStyle get enabledStyle => Theme.of(context).textTheme.bodyMedium!;
@@ -184,7 +191,11 @@ class _LyricsEditorState extends State<LyricsEditor> {
 
                     TextButton.icon(
                       label: Text("Next"),
-                      onPressed: textEditingController.text.isEmpty
+                      onPressed:
+                          textEditingController.text.isEmpty &&
+                              toLRCLineList(
+                                textEditingController.text,
+                              ).validate()
                           ? null
                           : () {
                               if (modeSelected != _lrctextMode) {
@@ -287,9 +298,7 @@ class _LyricsEditorState extends State<LyricsEditor> {
             controller: NoOpController(
               lyrics: widget.track.copyWith(
                 syncedLyrics: textEditingController.text,
-                duration:
-                    lrcln.lastOrNull?.timestamp.toDouble() ??
-                    Duration(hours: 1).toDouble(),
+                duration: lrcln.duration.toDouble(),
               ),
             ),
             onSave: () {

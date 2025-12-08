@@ -6,6 +6,7 @@ import 'package:lyrium/datahelper.dart';
 import 'package:lyrium/utils/duration.dart';
 import 'package:lyrium/utils/search_terms.dart';
 import 'package:lyrium/widgets/lyrics_sheet.dart';
+import 'package:lyrium/widgets/settings.dart';
 import 'package:provider/provider.dart';
 
 enum SearchSource { global, local, now, recent }
@@ -150,40 +151,51 @@ class _QuickSearchState extends State<QuickSearch> {
 
             Padding(
               padding: EdgeInsetsGeometry.all(8.0),
-              child: Wrap(
-                spacing: 8.0,
+              child: Row(
                 children: [
-                  FilterChip(
-                    label: const Text('LRCLIB'),
-                    selected: _mode == SearchSource.global,
-                    onSelected: (selected) {
-                      if (selected) {
-                        setState(() {
-                          _mode = SearchSource.global;
+                  Wrap(
+                    spacing: 8.0,
+                    children: [
+                      FilterChip(
+                        label: const Text('LRCLIB'),
+                        selected: _mode == SearchSource.global,
+                        onSelected: (selected) {
+                          if (selected) {
+                            setState(() {
+                              _mode = SearchSource.global;
 
-                          _results = lastresults;
-                          _error = null;
-                          if (lastresults.isEmpty) {
+                              _results = lastresults;
+                              _error = null;
+                              if (lastresults.isEmpty) {
+                                _search();
+                              }
+                            });
+                          }
+                        },
+                      ),
+
+                      FilterChip(
+                        label: const Text('Saved'),
+                        selected: _mode == SearchSource.local,
+                        onSelected: (selected) {
+                          if (selected) {
+                            setState(() {
+                              _mode = SearchSource.local;
+                              _results = [];
+                              _error = null;
+                            });
                             _search();
                           }
-                        });
-                      }
-                    },
+                        },
+                      ),
+                    ],
                   ),
 
-                  FilterChip(
-                    label: const Text('Saved'),
-                    selected: _mode == SearchSource.local,
-                    onSelected: (selected) {
-                      if (selected) {
-                        setState(() {
-                          _mode = SearchSource.local;
-                          _results = [];
-                          _error = null;
-                        });
-                        _search();
-                      }
-                    },
+                  Spacer(),
+
+                  IconButton(
+                    icon: Icon(Icons.settings),
+                    onPressed: showSettings,
                   ),
                 ],
               ),
@@ -305,6 +317,10 @@ class _QuickSearchState extends State<QuickSearch> {
 
   _buildSubmit() {
     return TextButton(onPressed: _search, child: Text("Find"));
+  }
+
+  void showSettings() {
+    showAboutDialog(context: context, applicationVersion: packageInfo.version);
   }
 }
 
