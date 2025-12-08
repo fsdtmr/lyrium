@@ -74,9 +74,9 @@ class DataHelper {
     final updated = await q.write(
       LyricsCompanion(
         title: Value(track.trackName),
-        artist: Value(track.albumName ?? ''),
-        album: Value(track.albumName ?? ''),
-        duration: Value(track.duration ?? 0),
+        artist: Value(track.albumName),
+        album: Value(track.albumName),
+        duration: Value(track.duration),
         instrumental: Value(data.instrumental ?? false),
         lyrics: Value(data.syncedLyrics ?? data.plainLyrics ?? ''),
       ),
