@@ -89,17 +89,7 @@ class MusicController extends ChangeNotifier {
     } else {
       final prevName = info?.trackName;
 
-      package = data["package"];
-      duration = Duration(milliseconds: (data["duration"] as int?) ?? 0);
-      progress = Duration(milliseconds: (data["position"] as int?) ?? 0);
-      isPlaying = data[IS_PLAYING] as bool? ?? false;
-
-      info = TrackInfo(
-        artistName: data["artist"],
-        trackName: data["title"],
-        albumName: data["album"],
-        durationseconds: duration.inDouble,
-      );
+      info = parseData(data);
 
       if (prevName != info?.trackName && !unattachedMode) {
         await _onTrackChanged();
@@ -107,6 +97,19 @@ class MusicController extends ChangeNotifier {
     }
 
     notifyListeners();
+  }
+
+  TrackInfo parseData(Map<dynamic, dynamic> data) {
+    package = data["package"];
+    duration = Duration(milliseconds: (data["duration"] as int?) ?? 0);
+    progress = Duration(milliseconds: (data["position"] as int?) ?? 0);
+    isPlaying = data[IS_PLAYING] as bool? ?? false;
+    return TrackInfo(
+      artistName: data["artist"] ?? "Invalid",
+      trackName: data["title"] ?? "Invalid",
+      albumName: data["album"] ?? "Invalid",
+      durationseconds: duration?.inDouble ?? 1,
+    );
   }
 
   Future<Image?>? image;

@@ -198,24 +198,20 @@ class _HomePageState extends State<HomePage> {
               child: FutureBuilder(
                 future: ctrl.image,
                 builder: (c, s) {
-                  return AspectRatio(
-                    aspectRatio: 1,
-                    child:
-                        s.data ??
-                        Center(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20),
-                              color: Theme.of(context).secondaryHeaderColor,
-                            ),
-                            child: Icon(
-                              Icons.music_note,
-                              size: 300,
-                              color: Theme.of(context).scaffoldBackgroundColor,
-                            ),
+                  return s.data ??
+                      Center(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            color: Theme.of(context).secondaryHeaderColor,
+                          ),
+                          child: Icon(
+                            Icons.music_note,
+                            size: 300,
+                            color: Theme.of(context).scaffoldBackgroundColor,
                           ),
                         ),
-                  );
+                      );
                 },
               ),
             ),
