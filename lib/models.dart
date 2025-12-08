@@ -105,7 +105,7 @@ class LyricsTrack {
   }
 
   Track toInfo() {
-    return this.track;
+    return track;
   }
 
   static empty() {

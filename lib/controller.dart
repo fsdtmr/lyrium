@@ -293,5 +293,5 @@ class NoOpController extends LyricsController {
   @override
   // TODO: implement duration
   Duration get duration =>
-      lyrics.track.duration?.toDuration() ?? Duration(hours: 1);
+      lyrics.track.duration.toDuration() ?? Duration(hours: 1);
 }

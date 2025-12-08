@@ -7,7 +7,9 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  packageInfo = await PackageInfo.fromPlatform(baseUrl: "/lyrium/");
+  packageInfo = await PackageInfo.fromPlatform(
+    baseUrl: "https://fsdtmr.github.io/lyrium/",
+  );
   runApp(
     ChangeNotifierProvider(
       create: (_) => MusicController(),

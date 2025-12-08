@@ -217,9 +217,9 @@ class _LyricsEditorState extends State<LyricsEditor> {
   }
 
   void switchtoPlain() {
-    final _plain = toLRCLineList(textEditingController.text).toPlainText();
-    secondarytextEditingController.text = _plain.isValid
-        ? _plain
+    final plain = toLRCLineList(textEditingController.text).toPlainText();
+    secondarytextEditingController.text = plain.isValid
+        ? plain
         : textEditingController.text;
     setState(() => modeSelected = _plaintextMode);
   }

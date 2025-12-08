@@ -15,10 +15,10 @@ Future<dynamic> opensubmitform(BuildContext context, DraftTrack track) {
 
 class SubmitForm extends StatefulWidget {
   final DraftTrack draft;
-
   const SubmitForm({super.key, required this.draft});
+
   @override
-  _SubmitFormState createState() => _SubmitFormState();
+  State<SubmitForm> createState() => _SubmitFormState();
 }
 
 class _SubmitFormState extends State<SubmitForm> {

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:lyrium/controller.dart';
-import 'package:lyrium/editor.dart';
 import 'package:lyrium/models.dart';
 import 'package:lyrium/search.dart';
 import 'package:lyrium/widgets/submit_form.dart';

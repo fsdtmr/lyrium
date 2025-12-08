@@ -3,7 +3,6 @@ import 'package:lyrium/controller.dart';
 import 'package:lyrium/models.dart';
 import 'package:flutter/material.dart';
 import 'package:lyrium/datahelper.dart';
-import 'package:lyrium/utils/duration.dart';
 import 'package:lyrium/utils/search_terms.dart';
 import 'package:lyrium/widgets/lyrics_sheet.dart';
 import 'package:lyrium/widgets/settings.dart';

@@ -6,6 +6,7 @@ class Line {
 
 class LRCLine implements Line {
   final Duration timestamp;
+  @override
   final String text;
   LRCLine({required this.timestamp, required this.text});
 }
@@ -139,13 +140,13 @@ extension LRCSpans on List<LRCLine> {
   }
 
   int position(Duration time, [int startFrom = 0]) {
-    if (this.isEmpty) return -1;
+    if (isEmpty) return -1;
 
     int left = 0;
-    int right = this.length - 1;
+    int right = length - 1;
     int resultIndex = 0;
 
-    if (startFrom >= 0 && startFrom < this.length) {
+    if (startFrom >= 0 && startFrom < length) {
       if (this[startFrom].timestamp <= time) {
         left = startFrom;
       } else {

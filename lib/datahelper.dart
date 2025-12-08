@@ -124,7 +124,7 @@ extension SearchQuery on AppDatabase {
 
     for (final q in terms.quotedTerms) {
       if (q.isValid) {
-        conditions.add(lyrics.lyrics.like('%${q}%'));
+        conditions.add(lyrics.lyrics.like('%$q%'));
       }
     }
 
