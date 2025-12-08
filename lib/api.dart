@@ -39,14 +39,14 @@ class ApiHandler {
     return mapTracks(res);
   }
 
-  Future<List<LyricsTrack>> find(TrackInfo inf) async {
+  Future<List<LyricsTrack>> find(Track inf) async {
     final res = await _get(
       '/api/get',
       queryParameters: {
         'artist_name': inf.artistName,
         'track_name': inf.trackName,
         'album_name': inf.albumName,
-        'duration': inf.durationseconds.toString(),
+        'duration': inf.duration.toString(),
       },
     );
     return mapTracks([res]);

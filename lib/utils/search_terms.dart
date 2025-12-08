@@ -67,7 +67,7 @@ class SearchTerms {
   }
 }
 
-extension ClearTemplate on TrackInfo {
+extension ClearTemplate on Track {
   static List<String> advertisement = ["Advertisement", "Sponsored"];
   static List<String> clearArtists = [
     "•",
@@ -78,7 +78,7 @@ extension ClearTemplate on TrackInfo {
 
   static List<String> replacewithSpace = ["/"];
   static List<String> replacewithBlank = ["VEVO"];
-  TrackInfo clearTemplates() {
+  Track clearTemplates() {
     String clearedTrack = trackName;
     String clearedArtist = artistName;
     String clearedAlbum = albumName;
@@ -98,11 +98,12 @@ extension ClearTemplate on TrackInfo {
       clearedArtist = clearedArtist.replaceAll(e, "").trim();
     }
 
-    return TrackInfo(
+    return Track(
       artistName: clearedArtist,
       trackName: clearedTrack,
       albumName: clearedAlbum,
-      durationseconds: durationseconds,
+      duration: duration,
+      namespace: 'Query',
     );
   }
 }

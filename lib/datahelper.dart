@@ -11,19 +11,19 @@ class DataHelper {
   final AppDatabase db = AppDatabase();
 
   /// Insert a new track and its lyrics
-  Future<int> saveTrack(LyricsTrack track, TrackInfo? extra) async {
+  Future<int> saveTrack(LyricsTrack data, Track? extra) async {
     final lyricId = await db
         .into(db.lyrics)
         .insert(
           LyricsCompanion.insert(
-            originId: Value("${track.id}"),
-            title: track.trackName,
-            artist: Value(track.artistName),
-            album: Value(track.albumName),
-            duration: track.duration ?? extra?.durationseconds ?? 0,
-            instrumental: Value(track.instrumental == true),
-            lyrics: Value(track.syncedLyrics ?? track.plainLyrics ?? ''),
-            namespace: Value(track.namespace),
+            originId: Value("${data.id}"),
+            namespace: Value(data.track.namespace),
+            title: data.track.trackName,
+            artist: Value(data.track.artistName),
+            album: Value(data.track.albumName),
+            duration: data.track.duration ?? extra?.duration ?? 0,
+            instrumental: Value(data.instrumental == true),
+            lyrics: Value(data.syncedLyrics ?? data.plainLyrics ?? ''),
           ),
         );
     return lyricId;
@@ -53,7 +53,7 @@ class DataHelper {
     return result.map((e) => LyricsTrack.fromDrift(e)).toList();
   }
 
-  Future<LyricsTrack?> getTrack(TrackInfo trackInfo) async {
+  Future<LyricsTrack?> getTrack(Track trackInfo) async {
     final q = db.select(db.lyrics)
       ..where(
         (t) =>
@@ -67,17 +67,18 @@ class DataHelper {
     return result == null ? null : LyricsTrack.fromDrift(result);
   }
 
-  Future<bool> updateTrack(LyricsTrack track) async {
-    final q = db.update(db.lyrics)..where((t) => t.id.equals(track.id));
+  Future<bool> updateTrack(LyricsTrack data) async {
+    final q = db.update(db.lyrics)..where((t) => t.id.equals(data.id));
 
+    final track = data.track;
     final updated = await q.write(
       LyricsCompanion(
         title: Value(track.trackName),
         artist: Value(track.albumName ?? ''),
         album: Value(track.albumName ?? ''),
         duration: Value(track.duration ?? 0),
-        instrumental: Value(track.instrumental ?? false),
-        lyrics: Value(track.syncedLyrics ?? track.plainLyrics ?? ''),
+        instrumental: Value(data.instrumental ?? false),
+        lyrics: Value(data.syncedLyrics ?? data.plainLyrics ?? ''),
       ),
     );
 

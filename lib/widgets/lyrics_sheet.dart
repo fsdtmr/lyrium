@@ -124,7 +124,7 @@ void showLyricsSheet(BuildContext context, LyricsTrack song, onParentChanged) {
 extension on LyricsTrack {
   String get lyrics => syncedLyrics ?? plainLyrics ?? "";
 
-  String get title => trackName;
+  String get title => track.trackName;
 
-  String get artist => artistName ?? "";
+  String get artist => track.artistName;
 }

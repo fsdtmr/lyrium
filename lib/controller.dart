@@ -10,8 +10,7 @@ import 'package:lyrium/utils/duration.dart';
 import 'package:lyrium/widgets/submit_form.dart';
 
 class MusicController extends ChangeNotifier {
-  TrackInfo? info;
-  String? package;
+  Track? info;
   Duration? duration;
   Duration? progress;
   bool isPlaying = false;
@@ -99,16 +98,16 @@ class MusicController extends ChangeNotifier {
     notifyListeners();
   }
 
-  TrackInfo parseData(Map<dynamic, dynamic> data) {
-    package = data["package"];
+  Track parseData(Map<dynamic, dynamic> data) {
     duration = Duration(milliseconds: (data["duration"] as int?) ?? 0);
     progress = Duration(milliseconds: (data["position"] as int?) ?? 0);
     isPlaying = data[IS_PLAYING] as bool? ?? false;
-    return TrackInfo(
+    return Track(
+      namespace: data["package"] ?? "Device",
       artistName: data["artist"] ?? "Invalid",
       trackName: data["title"] ?? "Invalid",
       albumName: data["album"] ?? "Invalid",
-      durationseconds: duration?.inDouble ?? 1,
+      duration: duration?.inDouble ?? 1,
     );
   }
 
@@ -207,7 +206,7 @@ class MusicController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setInfo(TrackInfo? newinfo) {
+  void setInfo(Track? newinfo) {
     info = newinfo;
     notifyListeners();
   }
@@ -270,7 +269,8 @@ class TempController extends LyricsController {
   @override
   Future<void> togglePause(bool b) => onTogglePause(b);
   @override
-  Duration get duration => lyrics.duration?.toDuration() ?? Duration(hours: 1);
+  Duration get duration =>
+      lyrics.track.duration.toDuration() ?? Duration(hours: 1);
 }
 
 class NoOpController extends LyricsController {
@@ -292,5 +292,6 @@ class NoOpController extends LyricsController {
 
   @override
   // TODO: implement duration
-  Duration get duration => lyrics.duration?.toDuration() ?? Duration(hours: 1);
+  Duration get duration =>
+      lyrics.track.duration?.toDuration() ?? Duration(hours: 1);
 }

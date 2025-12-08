@@ -13,7 +13,7 @@ enum SearchSource { global, local, now, recent }
 
 class QuickSearch extends StatefulWidget {
   final Function(LyricsTrack, bool)? onResultSelected;
-  final TrackInfo? initailQuery;
+  final Track? initailQuery;
 
   const QuickSearch({super.key, this.onResultSelected, this.initailQuery});
 
@@ -36,7 +36,7 @@ class _QuickSearchState extends State<QuickSearch> {
     super.dispose();
   }
 
-  late TrackInfo? initailQuery;
+  late Track? initailQuery;
 
   @override
   void initState() {
@@ -94,10 +94,10 @@ class _QuickSearchState extends State<QuickSearch> {
     final api = ApiHandler();
     lastresults = await api.searchTracks(query).then((c) {
       if (initailQuery != null) {
-        final target = initailQuery!.durationseconds;
+        final target = initailQuery!.duration;
         c.sort((a, b) {
-          final diffA = (a.duration! - target).abs();
-          final diffB = (b.duration! - target).abs();
+          final diffA = (a.track.duration - target).abs();
+          final diffB = (b.track.duration - target).abs();
           return diffA.compareTo(diffB);
         });
       }
@@ -250,46 +250,6 @@ class _QuickSearchState extends State<QuickSearch> {
     );
   }
 
-  Future<void> showfileoptions(BuildContext context, LyricsTrack track) async {
-    await showDialog(
-      context: context,
-      builder: (c) {
-        return ListView(
-          children: [
-            Text("Track ID: ${track.id}"),
-            Text("Track Name: ${track.trackName}"),
-            Text("Artist Name: ${track.artistName ?? "Unknown Artist"}"),
-            Text("Album Name: ${track.albumName ?? "Unknown Album"}"),
-            Text("Duration: ${track.duration.toShortString()}"),
-            Text("Instrumental: ${track.instrumental == true ? "Yes" : "No"}"),
-            Text("Plain Lyrics: ${track.plainLyrics ?? "No Lyrics"}"),
-            Text("Synced Lyrics: ${track.syncedLyrics ?? "No Synced Lyrics"}"),
-
-            IconButton(
-              onPressed: () => DataHelper.instance
-                  .delete(track)
-                  .then((t) => Navigator.of(context).pop()),
-              icon: Icon(Icons.delete, color: Colors.red),
-            ),
-
-            TextButton(
-              onPressed: () {
-                DataHelper.instance.delete(track);
-
-                Navigator.of(context).pop();
-              },
-              child: Text("Delete"),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (_mode != SearchSource.global) {
-      await _search();
-    }
-  }
-
   void repriotirize() {
     // final additional = _controller.text.substring(lastquery.length);
     // final words = additional
@@ -313,10 +273,6 @@ class _QuickSearchState extends State<QuickSearch> {
     //       : 0,
     // );
     setState(() {});
-  }
-
-  _buildSubmit() {
-    return TextButton(onPressed: _search, child: Text("Find"));
   }
 
   void showSettings() {
@@ -420,7 +376,8 @@ class ResultsListView extends StatelessWidget {
       itemCount: songs.length,
       separatorBuilder: (_, __) => const SizedBox(height: 0),
       itemBuilder: (context, index) {
-        final LyricsTrack item = songs[index];
+        final LyricsTrack itemd = songs[index];
+        final Track item = itemd.track;
         final title = item.trackName;
         final artist = item.artistName ?? "";
 
@@ -463,7 +420,7 @@ class ResultsListView extends StatelessWidget {
                     )
                     .toList(),
           ),
-          onTap: () => showLyricsSheet(context, item, onParentChanged),
+          onTap: () => showLyricsSheet(context, itemd, onParentChanged),
         );
       },
     );

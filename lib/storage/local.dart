@@ -23,7 +23,7 @@ class Lyrics extends Table {
 @DriftDatabase(tables: [Lyrics])
 class AppDatabase extends _$AppDatabase {
   final String name;
-  AppDatabase({this.name = "lyrium"}) : super(openConnection(name));
+  AppDatabase({this.name = "lyriumV2"}) : super(openConnection(name));
 
   @override
   int get schemaVersion => 2;

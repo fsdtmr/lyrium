@@ -1,40 +1,70 @@
 import 'package:lyrium/storage/local.dart';
 
-class TrackInfo {
+class Track {
+  final String namespace;
   final String artistName;
   final String trackName;
   final String albumName;
-  final double durationseconds;
+  final double duration; // ss.mss
 
-  TrackInfo({
+  Track({
+    required this.namespace,
     required this.artistName,
     required this.trackName,
     required this.albumName,
-    required this.durationseconds,
+    required this.duration,
   });
+
+  static Track fromMap(Map<String, dynamic> map) {
+    return Track(
+      namespace: map['namespace'],
+      trackName: map['trackName'],
+      artistName: map['artistName'],
+      albumName: map['albumName'],
+      duration: map['duration'],
+    );
+  }
+
+  static Track fromDrift(Lyric lyric) {
+    return Track(
+      trackName: lyric.title,
+      artistName: lyric.artist ?? "Unknown",
+      albumName: lyric.album ?? "Unknown",
+      duration: lyric.duration,
+      namespace: lyric.namespace,
+    );
+  }
+
+  Track copyWith({
+    String? namespace,
+    String? trackName,
+    String? artistName,
+    String? albumName,
+    double? duration,
+  }) {
+    return Track(
+      namespace: namespace ?? this.namespace,
+      trackName: trackName ?? this.trackName,
+      artistName: artistName ?? this.artistName,
+      albumName: albumName ?? this.albumName,
+      duration: duration ?? this.duration,
+    );
+  }
 }
 
 class LyricsTrack {
   final int id;
-  final String namespace;
-  final String trackName;
-  final String? artistName;
-  final String? albumName;
-  final double? duration;
+  final Track track;
   final bool? instrumental;
   final String? plainLyrics;
   final String? syncedLyrics;
 
   LyricsTrack({
     required this.id,
-    required this.trackName,
-    this.artistName,
-    this.albumName,
-    this.duration,
+    required this.track,
     this.instrumental,
     this.plainLyrics,
     this.syncedLyrics,
-    required this.namespace,
   });
   @override
   String toString() {
@@ -44,24 +74,20 @@ class LyricsTrack {
   static LyricsTrack fromMap(String namespace, Map<String, dynamic> map) {
     return LyricsTrack(
       id: map['id'],
-      trackName: map['trackName'],
-      artistName: map['artistName'],
-      albumName: map['albumName'],
-      duration: map['duration'],
       instrumental: map['instrumental'] == 1,
       plainLyrics: map['plainLyrics'],
       syncedLyrics: map['syncedLyrics'],
-      namespace: namespace,
+      track: Track.fromMap(map),
     );
   }
 
-  Map<String, dynamic> toMap({TrackInfo? info}) {
+  Map<String, dynamic> toMap({Track? info}) {
     return {
       'id': id,
-      'trackName': info?.trackName ?? trackName,
-      'artistName': info?.artistName ?? artistName,
-      'albumName': info?.albumName ?? albumName,
-      'duration': info?.durationseconds ?? duration,
+      'trackName': info?.trackName ?? track.trackName,
+      'artistName': info?.artistName ?? track.artistName,
+      'albumName': info?.albumName ?? track.albumName,
+      'duration': info?.duration ?? track.duration,
       'instrumental': instrumental == true ? 1 : 0,
       'plainLyrics': plainLyrics,
       'syncedLyrics': syncedLyrics,
@@ -71,28 +97,19 @@ class LyricsTrack {
   static LyricsTrack fromDrift(Lyric lyric) {
     return LyricsTrack(
       id: lyric.id,
-      trackName: lyric.title,
-      artistName: lyric.artist,
-      albumName: lyric.album,
-      duration: lyric.duration,
+      track: Track.fromDrift(lyric),
       instrumental: lyric.instrumental ?? false,
       plainLyrics: lyric.lyrics,
       syncedLyrics: lyric.lyrics,
-      namespace: 'local',
     );
   }
 
-  TrackInfo toInfo() {
-    return TrackInfo(
-      trackName: trackName,
-      artistName: artistName ?? "Not Set",
-      albumName: albumName ?? "Not Set",
-      durationseconds: duration ?? 0,
-    );
+  Track toInfo() {
+    return this.track;
   }
 
   static empty() {
-    return LyricsTrack(id: -1, trackName: "", namespace: "Template");
+    return LyricsTrack(id: -1, track: Track.fromMap({}));
   }
 
   LyricsTrack copyWith({
@@ -108,14 +125,44 @@ class LyricsTrack {
   }) {
     return LyricsTrack(
       id: id ?? this.id,
-      namespace: namespace ?? this.namespace,
-      trackName: trackName ?? this.trackName,
-      artistName: artistName ?? this.artistName,
-      albumName: albumName ?? this.albumName,
-      duration: duration ?? this.duration,
+      track: track.copyWith(
+        namespace: namespace,
+        trackName: trackName,
+        artistName: artistName,
+        albumName: albumName,
+        duration: duration,
+      ),
+
       instrumental: instrumental ?? this.instrumental,
       plainLyrics: plainLyrics ?? this.plainLyrics,
       syncedLyrics: syncedLyrics ?? this.syncedLyrics,
+    );
+  }
+}
+
+class DraftTrack extends LyricsTrack {
+  final String newText;
+
+  DraftTrack({
+    required super.id,
+
+    required this.newText,
+    super.instrumental,
+    super.plainLyrics,
+    super.syncedLyrics,
+    required super.track,
+  });
+
+  factory DraftTrack.from(LyricsTrack track, String s) {
+    return DraftTrack(
+      newText: s,
+
+      id: track.id,
+
+      instrumental: track.instrumental,
+      plainLyrics: track.plainLyrics,
+      syncedLyrics: track.syncedLyrics,
+      track: track.track,
     );
   }
 }

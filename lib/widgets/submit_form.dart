@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lyrium/datahelper.dart';
-import 'package:lyrium/editor.dart';
+import 'package:lyrium/models.dart';
 import 'package:lyrium/widgets/scrollable_area.dart';
 import 'package:pretty_diff_text/pretty_diff_text.dart';
 
@@ -29,8 +29,12 @@ class _SubmitFormState extends State<SubmitForm> {
 
   @override
   void initState() {
-    _titleController = TextEditingController(text: widget.draft.trackName);
-    _artistController = TextEditingController(text: widget.draft.artistName);
+    _titleController = TextEditingController(
+      text: widget.draft.track.trackName,
+    );
+    _artistController = TextEditingController(
+      text: widget.draft.track.artistName,
+    );
     super.initState();
   }
 

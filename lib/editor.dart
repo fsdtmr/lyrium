@@ -32,7 +32,7 @@ class _LyricsEditorState extends State<LyricsEditor> {
   late List<bool> modeSelected;
 
   late String initial;
-  late TrackInfo info;
+  late Track info;
 
   Duration duration = Durations.medium1;
   @override
@@ -310,39 +310,6 @@ class _LyricsEditorState extends State<LyricsEditor> {
           );
         },
       ),
-    );
-  }
-}
-
-class DraftTrack extends LyricsTrack {
-  final String newText;
-
-  DraftTrack({
-    required super.id,
-    required super.trackName,
-    super.namespace = "Draft",
-    required this.newText,
-
-    super.artistName,
-    super.albumName,
-    super.duration,
-    super.instrumental,
-    super.plainLyrics,
-    super.syncedLyrics,
-  });
-
-  factory DraftTrack.from(LyricsTrack track, String s) {
-    return DraftTrack(
-      newText: s,
-
-      id: track.id,
-      trackName: track.trackName,
-      artistName: track.artistName,
-      albumName: track.albumName,
-      duration: track.duration,
-      instrumental: track.instrumental,
-      plainLyrics: track.plainLyrics,
-      syncedLyrics: track.syncedLyrics,
     );
   }
 }

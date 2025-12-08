@@ -173,7 +173,8 @@ class _LyricsViewState extends State<LyricsView> {
                 child: Slider(value: position, onChanged: onSeeked),
               ),
               Text(
-                widget.controller.lyrics.duration.toShortString() ?? "-----",
+                widget.controller.lyrics.track.duration.toShortString() ??
+                    "-----",
                 style: const TextStyle(fontSize: 12),
               ),
 

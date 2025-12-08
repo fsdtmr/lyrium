@@ -76,11 +76,13 @@ class _HomePageState extends State<HomePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            ctrl.info?.trackName ?? ctrl.lyrics?.trackName ?? "No Track",
+            ctrl.info?.trackName ?? ctrl.lyrics?.track.trackName ?? "No Track",
             overflow: TextOverflow.ellipsis,
           ),
           Text(
-            ctrl.info?.artistName ?? ctrl.lyrics?.trackName ?? "No Artist",
+            ctrl.info?.artistName ??
+                ctrl.lyrics?.track.artistName ??
+                "No Artist",
             style: const TextStyle(fontSize: 12),
           ),
         ],
