@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lyrium/datahelper.dart';
 import 'package:lyrium/models.dart';
+import 'package:lyrium/utils/duration.dart';
+import 'package:lyrium/utils/lrc.dart';
 import 'package:lyrium/widgets/scrollable_area.dart';
 import 'package:pretty_diff_text/pretty_diff_text.dart';
 
@@ -36,6 +38,9 @@ class _SubmitFormState extends State<SubmitForm> {
       text: widget.draft.track.artistName,
     );
     super.initState();
+    Future.delayed(Durations.medium1, () {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -95,6 +100,10 @@ class _SubmitFormState extends State<SubmitForm> {
                               _titleController.text,
                               _artistController.text,
                               widget.draft.newText,
+
+                              toLRCLineList(
+                                widget.draft.newText,
+                              ).duration.toDouble(),
                             )
                             .then((c) {
                               if (c.isEmpty) {
@@ -103,10 +112,12 @@ class _SubmitFormState extends State<SubmitForm> {
                                     content: Text('Saving Failed'),
                                   ),
                                 );
+                              } else {
+                                Navigator.of(context).popToHome();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Saved')),
+                                );
                               }
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Saved')),
-                              );
                             });
                       }
                     : null,
@@ -117,5 +128,11 @@ class _SubmitFormState extends State<SubmitForm> {
         ),
       ),
     );
+  }
+}
+
+extension on NavigatorState {
+  void popToHome() {
+    popUntil((route) => route.isFirst);
   }
 }

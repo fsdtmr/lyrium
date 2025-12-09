@@ -149,7 +149,7 @@ class MusicController extends ChangeNotifier {
 
   var unattachedMode = false;
   void setLyrics(LyricsTrack? track, [bool attached = false]) {
-    lyrics = track;
+    lyrics = track?.fallBackDuration();
     unattachedMode = !attached;
     notifyListeners();
   }
@@ -229,6 +229,15 @@ class MusicController extends ChangeNotifier {
       notifyListeners();
       Future.delayed(Durations.extralong4);
     }
+  }
+}
+
+extension on LyricsTrack {
+  LyricsTrack fallBackDuration() {
+    if (track.duration.toDuration() < Durations.extralong4) {
+      return this.copyWith(duration: Duration(hours: 1).toDouble());
+    }
+    return this;
   }
 }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lyrium/controller.dart';
 import 'package:lyrium/models.dart';
 import 'package:lyrium/search.dart';
+import 'package:lyrium/widgets/app_drawer.dart';
 import 'package:lyrium/widgets/settings.dart';
 import 'package:lyrium/widgets/submit_form.dart';
 import 'package:provider/provider.dart';
@@ -275,36 +276,5 @@ class _HomePageState extends State<HomePage> {
 
   Widget buildDrawer() {
     return AppDrawer();
-  }
-}
-
-class AppDrawer extends StatelessWidget {
-  const AppDrawer({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Drawer(
-      child: ListView(
-        children: [
-          ListTile(
-            onTap: () => Provider.of<MusicController>(
-              context,
-              listen: false,
-            ).setShowTrackMode(true),
-            leading: Icon(Icons.play_arrow),
-            title: Text("Now Playing"),
-          ),
-          ListTile(
-            onTap: () => showAboutDialog(
-              context: context,
-              applicationVersion: packageInfo.version,
-              children: [Text(packageInfo.installerStore ?? "")],
-            ),
-            leading: Icon(Icons.info),
-            title: Text("About"),
-          ),
-        ],
-      ),
-    );
   }
 }

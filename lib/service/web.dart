@@ -2,7 +2,6 @@ import 'package:drift/backends.dart';
 import 'package:drift/wasm.dart';
 import 'package:flutter/widgets.dart';
 
-/// Called to open the DB in the browser
 Future<QueryExecutor> openPlatformConnection(String name) async {
   return WasmDatabase.open(
     databaseName: '$name.db',

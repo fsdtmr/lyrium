@@ -10,8 +10,11 @@ class DataHelper {
 
   final AppDatabase db = AppDatabase();
 
+  static bool isUpdated = false;
+
   /// Insert a new track and its lyrics
   Future<int> saveTrack(LyricsTrack data, Track? extra) async {
+    isUpdated = true;
     final lyricId = await db
         .into(db.lyrics)
         .insert(
@@ -68,6 +71,8 @@ class DataHelper {
   }
 
   Future<bool> updateTrack(LyricsTrack data) async {
+    isUpdated = true;
+
     final q = db.update(db.lyrics)..where((t) => t.id.equals(data.id));
 
     final track = data.track;
@@ -86,20 +91,24 @@ class DataHelper {
   }
 
   Future<int> delete(LyricsTrack track) async {
+    isUpdated = true;
+
     return (db.delete(db.lyrics)..where((t) => t.id.equals(track.id))).go();
   }
 
   /// Close database connection
   Future<void> close() => db.close();
 
-  Future<List<Lyric>> insertDraft(title, artist, lyrics) {
+  Future<List<Lyric>> insertDraft(title, artist, lyrics, duration) {
+    isUpdated = true;
+
     return db
         .into(db.lyrics)
         .insert(
           LyricsCompanion.insert(
             title: title,
             artist: Value(artist),
-            duration: 0.0,
+            duration: duration,
             lyrics: Value(lyrics),
             namespace: Value("Draft"),
           ),

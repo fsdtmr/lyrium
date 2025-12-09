@@ -206,7 +206,12 @@ class _LyricsEditorState extends State<LyricsEditor> {
                                 switchtoLRC();
                                 return;
                               }
-                              openViewer(context);
+
+                              if (toLRCLineList(
+                                textEditingController.text,
+                              ).validate()) {
+                                openViewer(context);
+                              }
                             },
                       icon: const Icon(Icons.done),
                     ),

@@ -4,6 +4,7 @@ import 'package:lyrium/home.dart';
 import 'package:lyrium/models.dart';
 import 'package:lyrium/datahelper.dart';
 import 'package:lyrium/utils/search_terms.dart';
+import 'package:lyrium/widgets/app_drawer.dart';
 import 'package:lyrium/widgets/lyrics_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -106,6 +107,16 @@ class _QuickSearchState extends State<QuickSearch> {
     setState(() {
       _results = lastresults;
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant QuickSearch oldWidget) {
+    if (DataHelper.isUpdated) {
+      DataHelper.isUpdated = false;
+      _search();
+    }
+
+    super.didUpdateWidget(oldWidget);
   }
 
   @override
