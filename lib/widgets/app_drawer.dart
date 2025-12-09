@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lyrium/controller.dart';
-import 'package:lyrium/datahelper.dart';
 import 'package:lyrium/widgets/settings.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});

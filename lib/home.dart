@@ -3,7 +3,6 @@ import 'package:lyrium/controller.dart';
 import 'package:lyrium/models.dart';
 import 'package:lyrium/search.dart';
 import 'package:lyrium/widgets/app_drawer.dart';
-import 'package:lyrium/widgets/settings.dart';
 import 'package:lyrium/widgets/submit_form.dart';
 import 'package:provider/provider.dart';
 import 'package:lyrium/viewer.dart';

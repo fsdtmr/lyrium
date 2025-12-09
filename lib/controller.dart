@@ -235,7 +235,7 @@ class MusicController extends ChangeNotifier {
 extension on LyricsTrack {
   LyricsTrack fallBackDuration() {
     if (track.duration.toDuration() < Durations.extralong4) {
-      return this.copyWith(duration: Duration(hours: 1).toDouble());
+      return copyWith(duration: Duration(hours: 1).toDouble());
     }
     return this;
   }

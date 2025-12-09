@@ -1,6 +1,5 @@
 import 'package:lyrium/api.dart';
 import 'package:lyrium/controller.dart';
-import 'package:lyrium/home.dart';
 import 'package:lyrium/models.dart';
 import 'package:lyrium/datahelper.dart';
 import 'package:lyrium/utils/search_terms.dart';
