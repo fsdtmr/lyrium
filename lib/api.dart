@@ -17,12 +17,15 @@ class ApiHandler {
     ).replace(queryParameters: queryParameters);
     final response = await http.get(
       uri,
-      headers: {'User-Agent': 'lyrium/1.*.* (beta)'},
+      headers: {'User-Agent': 'lyrium/2.*.*'},
     );
     switch (response.statusCode) {
+      case 200:
+        break;
       case 404:
         throw Exception("This music did not match any songs");
       default:
+        throw Exception("API Responded With Status ${response.statusCode}");
     }
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as T;

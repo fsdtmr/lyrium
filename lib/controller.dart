@@ -291,7 +291,6 @@ class NoOpController extends LyricsController {
   Future<void> togglePause(bool b) async {}
 
   @override
-  // TODO: implement duration
   Duration get duration =>
       lyrics.track.duration.toDuration() ?? Duration(hours: 1);
 }
