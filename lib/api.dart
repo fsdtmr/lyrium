@@ -63,7 +63,7 @@ class ApiHandler {
 
         tracks.add(track);
       } catch (e) {
-        print(e);
+        print("Parsing Error: $e");
       }
     }
 

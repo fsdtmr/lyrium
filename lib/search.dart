@@ -1,11 +1,11 @@
 import 'package:lyrium/api.dart';
 import 'package:lyrium/controller.dart';
+import 'package:lyrium/home.dart';
 import 'package:lyrium/models.dart';
-import 'package:flutter/material.dart';
 import 'package:lyrium/datahelper.dart';
 import 'package:lyrium/utils/search_terms.dart';
 import 'package:lyrium/widgets/lyrics_sheet.dart';
-import 'package:lyrium/widgets/settings.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 enum SearchSource { global, local, now, recent }
@@ -111,6 +111,16 @@ class _QuickSearchState extends State<QuickSearch> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: AppDrawer(),
+      appBar: AppBar(
+        title: GestureDetector(
+          onTap: () => Provider.of<MusicController>(
+            context,
+            listen: false,
+          ).setShowTrackMode(true),
+          child: Row(children: [Text("lyrium")]),
+        ),
+      ),
       floatingActionButton: query.isNotEmpty
           ? null
           : FloatingActionButton.extended(
@@ -125,7 +135,6 @@ class _QuickSearchState extends State<QuickSearch> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            DefaultHeader(mode: true),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
               child: TextField(
@@ -191,11 +200,6 @@ class _QuickSearchState extends State<QuickSearch> {
                   ),
 
                   Spacer(),
-
-                  IconButton(
-                    icon: Icon(Icons.settings),
-                    onPressed: showSettings,
-                  ),
                 ],
               ),
             ),
@@ -215,7 +219,12 @@ class _QuickSearchState extends State<QuickSearch> {
                 child: query.isEmpty && (_results?.isEmpty ?? false)
                     ? _buildNoResults('', Icons.search)
                     : _results?.isEmpty ?? true
-                    ? _buildNoResults('Not Found', Icons.search_off)
+                    ? _loading
+                          ? Align(
+                              alignment: .topCenter,
+                              child: LinearProgressIndicator(),
+                            )
+                          : _buildNoResults('Not Found', Icons.search_off)
                     : ResultsListView(
                         songs: _results!,
                         query: _controller.text,
@@ -272,10 +281,6 @@ class _QuickSearchState extends State<QuickSearch> {
     //       : 0,
     // );
     setState(() {});
-  }
-
-  void showSettings() {
-    showAboutDialog(context: context, applicationVersion: packageInfo.version);
   }
 }
 
@@ -351,21 +356,6 @@ class ResultsListView extends StatelessWidget {
     return RichText(
       text: TextSpan(children: spans, style: style),
     );
-  }
-
-  String _initials(String title, String artist) {
-    final t = title.trim();
-    if (t.isEmpty) {
-      return artist
-          .split(' ')
-          .map((s) => s.isNotEmpty ? s[0] : '')
-          .take(2)
-          .join()
-          .toUpperCase();
-    }
-    final parts = t.split(' ');
-    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
-    return (parts[0][0] + parts[1][0]).toUpperCase();
   }
 
   @override

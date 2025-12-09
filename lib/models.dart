@@ -17,11 +17,11 @@ class Track {
 
   static Track fromMap(Map<String, dynamic> map) {
     return Track(
-      namespace: map['namespace'],
-      trackName: map['trackName'],
-      artistName: map['artistName'],
-      albumName: map['albumName'],
-      duration: map['duration'],
+      namespace: map['namespace'] ?? "",
+      trackName: map['trackName'] ?? "",
+      artistName: map['artistName'] ?? "",
+      albumName: map['albumName'] ?? "",
+      duration: map['duration'] ?? 0.0,
     );
   }
 

@@ -44,9 +44,13 @@ class _LyricsEditorState extends State<LyricsEditor> {
     textEditingController.text = initial;
 
     Future.microtask(() async {
-      while (mounted) {
+      while (true) {
         await Future.delayed(Durations.extralong4);
-        setState(() {});
+        if (mounted) {
+          setState(() {});
+        } else {
+          break;
+        }
       }
     });
   }

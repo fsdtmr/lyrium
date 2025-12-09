@@ -7,8 +7,10 @@ Future<QueryExecutor> openPlatformConnection(String name) async {
   return WasmDatabase.open(
     databaseName: '$name.db',
     sqlite3Uri: Uri.parse('sqlite3.wasm'),
-    driftWorkerUri: Uri.parse('drift_worker.dart.js'),
-  ).then((t) => t.resolvedExecutor);
+    driftWorkerUri: Uri.parse('drift_worker.js'),
+  ).then((t) {
+    return t.resolvedExecutor;
+  });
 }
 
 class NotificationConnection {
