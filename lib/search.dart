@@ -316,7 +316,7 @@ class DefaultHeader extends StatelessWidget {
           ).setShowTrackMode(mode),
           child: Center(
             child: Text(
-              "Lyrium",
+              "lyrium",
               style: Theme.of(context).textTheme.headlineMedium,
             ),
           ),

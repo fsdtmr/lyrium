@@ -8,6 +8,7 @@ Opensource lyrics viewer for web & android.
 ## Features
 - 🎵 Automatically detects the songs from notifications
 - 🎤 Show synchronized lyrics with music controls
+- 📝 Basic LRC file editing.
 
 ## Building
 To get started, make sure you have flutter and its [dependencies](https://flutter.dev/docs/get-started/install) installed, then clone the repository and build this app with the following commands:
@@ -20,5 +21,7 @@ To get started, make sure you have flutter and its [dependencies](https://flutte
    
 
 ## Contributing
-Statemangement is a mess right now, so any help is appreciated!
 
+This app needs some refactorings and better state management.
+
+ 
