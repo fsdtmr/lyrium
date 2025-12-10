@@ -1,0 +1,6 @@
+Synchronized lyrics viewer with
+
+## Features
+- 🎵 Automatically detects the songs from notifications
+- 🎤 Show synchronized lyrics with music controls
+- 📝 Basic LRC file editing.
