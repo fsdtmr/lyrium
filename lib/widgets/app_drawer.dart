@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lyrium/controller.dart';
+import 'package:lyrium/service/service.dart';
 import 'package:lyrium/widgets/settings.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -30,15 +31,29 @@ class AppDrawer extends StatelessWidget {
               context: context,
               applicationVersion: packageInfo.version,
               children: [
-                TextButton.icon(
-                  onPressed: () {
-                    launchUrl(
-                      Uri.parse("https://fsdtmr.github.io/lyrium/index.html"),
-                    );
-                  },
-                  label: Text("Web Version"),
-                  icon: Icon(Icons.web),
-                ),
+                isWebsite
+                    ? TextButton.icon(
+                        onPressed: () {
+                          launchUrl(
+                            Uri.parse(
+                              "https://github.com/fsdtmr/lyrium/releases/latest",
+                            ),
+                          );
+                        },
+                        label: Text("Latest Release"),
+                        icon: Icon(Icons.file_open),
+                      )
+                    : TextButton.icon(
+                        onPressed: () {
+                          launchUrl(
+                            Uri.parse(
+                              "https://fsdtmr.github.io/lyrium/index.html",
+                            ),
+                          );
+                        },
+                        label: Text("Web Version"),
+                        icon: Icon(Icons.web),
+                      ),
                 TextButton.icon(
                   onPressed: () {
                     launchUrl(Uri.parse("https://github.com/fsdtmr/lyrium"));
