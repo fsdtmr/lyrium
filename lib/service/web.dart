@@ -2,7 +2,11 @@ import 'package:drift/backends.dart';
 import 'package:drift/wasm.dart';
 import 'package:flutter/widgets.dart';
 
-Future<QueryExecutor> openPlatformConnection(String name) async {
+Future<QueryExecutor> openPlatformConnection(
+  String name, {
+  bool? memoryMode,
+}) async {
+  // tests does not need memory mode for now.
   return WasmDatabase.open(
     databaseName: '$name.db',
     sqlite3Uri: Uri.parse('sqlite3.wasm'),

@@ -1,13 +1,19 @@
 import 'dart:io';
 import 'package:drift/native.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:drift/drift.dart';
 
-Future<QueryExecutor> openPlatformConnection(String name) async {
+Future<QueryExecutor> openPlatformConnection(
+  String name, {
+  bool? memoryMode,
+}) async {
+  if (memoryMode ?? false) {
+    return NativeDatabase.memory();
+  }
+
   final dir = await getApplicationDocumentsDirectory();
   final file = File(p.join(dir.path, '$name.sqlite'));
 

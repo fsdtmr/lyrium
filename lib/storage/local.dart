@@ -1,5 +1,4 @@
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
 import 'package:lyrium/service/service.dart';
 import 'package:lyrium/utils/search_terms.dart';
 import 'package:lyrium/utils/string.dart';
@@ -27,11 +26,11 @@ class Lyrics extends Table {
 class AppDatabase extends _$AppDatabase {
   final String name;
 
-  AppDatabase({QueryExecutor? exec, this.name = "aoo"})
+  AppDatabase({QueryExecutor? exec, this.name = "lyrium"})
     : super(exec ?? openConnection(name));
 
   factory AppDatabase.memory() {
-    return AppDatabase(exec: NativeDatabase.memory());
+    return AppDatabase(exec: openConnection("name", memoryMode: true));
   }
   @override
   int get schemaVersion => 2;

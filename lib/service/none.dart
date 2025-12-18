@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-openPlatformConnection(String name) {
+openPlatformConnection(String name, {bool? memoryMode}) {
   throw UnimplementedError();
 }
 

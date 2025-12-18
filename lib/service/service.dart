@@ -5,8 +5,10 @@ import "none.dart"
     if (dart.library.js_interop) "web.dart"
     if (dart.library.io) "native.dart";
 
-LazyDatabase openConnection(String name) {
-  return LazyDatabase(() => openPlatformConnection(name));
+LazyDatabase openConnection(String name, {bool? memoryMode}) {
+  return LazyDatabase(
+    () => openPlatformConnection(name, memoryMode: memoryMode),
+  );
 }
 
 class MusicNotificationService {
