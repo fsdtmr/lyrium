@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lyrium/controller.dart';
 import 'package:lyrium/widgets/settings.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -30,12 +31,18 @@ class AppDrawer extends StatelessWidget {
               applicationVersion: packageInfo.version,
               children: [
                 TextButton.icon(
-                  onPressed: () {},
+                  onPressed: () {
+                    launchUrl(
+                      Uri.parse("https://fsdtmr.github.io/lyrium/index.html"),
+                    );
+                  },
                   label: Text("Web Version"),
                   icon: Icon(Icons.web),
                 ),
                 TextButton.icon(
-                  onPressed: () {},
+                  onPressed: () {
+                    launchUrl(Uri.parse("https://github.com/fsdtmr/lyrium"));
+                  },
                   label: Text("Github"),
                   icon: Icon(Icons.storage),
                 ),
