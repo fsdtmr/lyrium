@@ -9,26 +9,24 @@ import 'package:lyrium/models.dart';
 import 'package:lyrium/utils/duration.dart';
 import 'package:lyrium/widgets/submit_form.dart';
 
-class MusicController extends ChangeNotifier {
+class AppController extends ChangeNotifier {
+  bool hasNotificationAccess;
   Track? info;
   Duration? duration;
   Duration? progress;
   bool isPlaying = false;
   LyricsTrack? lyrics;
 
-  bool? _hasAccess = false;
-  bool get hasAccess => _hasAccess ?? false;
-
   StreamSubscription? _notificationSubscription;
   Timer? _polling;
 
-  bool isReady = false;
+  // bool isReady = false;
 
   bool showTrack = false;
 
   late GlobalKey rebuildKey;
 
-  MusicController() {
+  AppController(this.hasNotificationAccess) {
     _init();
   }
 
@@ -51,10 +49,6 @@ class MusicController extends ChangeNotifier {
 
   Future<void> _checkAccessAndStream() async {
     try {
-      _hasAccess = await MusicNotificationService.hasNotificationAccess();
-      isReady = true;
-      notifyListeners();
-
       late Function(Map<dynamic, dynamic>? data) reader;
 
       reader = (Map<dynamic, dynamic>? data) {
@@ -67,7 +61,7 @@ class MusicController extends ChangeNotifier {
         reader = (Map<dynamic, dynamic>? data) => _setData(data);
       };
 
-      if (hasAccess) {
+      if (hasNotificationAccess) {
         _notificationSubscription = MusicNotificationService.notifications
             .listen((m) => reader(m));
       }
@@ -130,11 +124,11 @@ class MusicController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> fetchAndSaveLyrics() async {
+  Future<void> autoLoad() async {
     if (info == null) return;
 
     final api = ApiHandler();
-    final lyricsData = await api.find(info!);
+    final lyricsData = await api.get(info!);
 
     startLyricsSaved(lyricsData.first, true);
   }
@@ -211,10 +205,10 @@ class MusicController extends ChangeNotifier {
     notifyListeners();
   }
 
-  openEditor(context) {
+  openEditor(context, Track? initailQuery) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (c) => LyricsEditor(track: LyricsTrack.empty()),
+        builder: (c) => LyricsEditor(track: LyricsTrack.empty(initailQuery)),
       ),
     );
   }
@@ -223,13 +217,30 @@ class MusicController extends ChangeNotifier {
     if (lyrics is DraftTrack) opensubmitform(context, lyrics as DraftTrack);
   }
 
-  Future<void> rebuildUntil(bool Function() param0) async {
-    while (param0()) {
-      _hasAccess = await MusicNotificationService.hasNotificationAccess();
-      notifyListeners();
-      Future.delayed(Durations.extralong4);
+  void openLyrics(LyricsTrack song) {
+    setLyrics(song);
+    if (hasNotificationAccess) {
+      setInfo(null);
+      setShowTrackMode(true);
     }
+
+    notifyListeners();
   }
+
+  void setHasAccess(bool? ac) {
+    hasNotificationAccess = ac ?? false;
+
+    notifyListeners();
+  }
+
+  // Future<void> rebuildUntil(bool Function() param0) async {
+  //   while (param0()) {
+  //     hasNotificationAccess =
+  //         await MusicNotificationService.hasNotificationAccess();
+  //     notifyListeners();
+  //     Future.delayed(Durations.extralong4);
+  //   }
+  // }
 }
 
 extension on LyricsTrack {
@@ -241,10 +252,10 @@ extension on LyricsTrack {
   }
 }
 
-abstract class LyricsController {
+abstract class NonListeningController {
   final LyricsTrack lyrics;
 
-  LyricsController({required this.lyrics});
+  NonListeningController({required this.lyrics});
   Future<void> togglePause(bool b);
   Future<void> seek(Duration duration);
   Future<Duration> getPosition();
@@ -254,7 +265,7 @@ abstract class LyricsController {
   Duration get duration;
 }
 
-class TempController extends LyricsController {
+class TempController extends NonListeningController {
   final Future<void> Function(bool) onTogglePause;
   final Future<void> Function(Duration) onSeek;
   final Future<Duration> Function() getPrimaryPosition;
@@ -282,7 +293,7 @@ class TempController extends LyricsController {
       lyrics.track.duration.toDuration() ?? Duration(hours: 1);
 }
 
-class NoOpController extends LyricsController {
+class NoOpController extends NonListeningController {
   NoOpController({required super.lyrics});
 
   @override

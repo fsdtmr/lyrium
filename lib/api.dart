@@ -42,7 +42,7 @@ class ApiHandler {
     return mapTracks(res);
   }
 
-  Future<List<LyricsTrack>> find(Track inf) async {
+  Future<List<LyricsTrack>> get(Track inf) async {
     final res = await _get(
       '/api/get',
       queryParameters: {

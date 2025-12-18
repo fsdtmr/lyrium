@@ -1,5 +1,8 @@
 import 'package:drift/drift.dart';
+import 'package:drift/native.dart';
 import 'package:lyrium/service/service.dart';
+import 'package:lyrium/utils/search_terms.dart';
+import 'package:lyrium/utils/string.dart';
 
 part 'local.g.dart';
 
@@ -23,8 +26,13 @@ class Lyrics extends Table {
 @DriftDatabase(tables: [Lyrics])
 class AppDatabase extends _$AppDatabase {
   final String name;
-  AppDatabase({this.name = "lyrium"}) : super(openConnection(name));
 
+  AppDatabase({QueryExecutor? exec, this.name = "aoo"})
+    : super(exec ?? openConnection(name));
+
+  factory AppDatabase.memory() {
+    return AppDatabase(exec: NativeDatabase.memory());
+  }
   @override
   int get schemaVersion => 2;
 
@@ -36,4 +44,43 @@ class AppDatabase extends _$AppDatabase {
       }
     },
   );
+}
+
+extension LyricsDatabase on AppDatabase {
+  Future<List<Lyric>> all() {
+    return (select(this.lyrics)..orderBy([
+          (u) => OrderingTerm(expression: u.id, mode: OrderingMode.desc),
+          (u) => OrderingTerm(expression: u.id),
+        ]))
+        .get();
+  }
+
+  Expression<bool> buildSearchFilter(SearchTerms terms) {
+    final conditions = <Expression<bool>>[];
+
+    if (terms.firstTerm.isValid) {
+      conditions.add(lyrics.title.like('%${terms.firstTerm!}%'));
+    }
+
+    if (terms.firstTerm.isValid) {
+      conditions.add(lyrics.title.like('%${terms.firstTerm!}%'));
+    }
+
+    for (final q in terms.quotedTerms) {
+      if (q.isValid) {
+        conditions.add(lyrics.lyrics.like('%$q%'));
+      }
+    }
+
+    conditions.add(lyrics.interlinked.isNull());
+
+    // // any unquoted extras
+    // for (final u in terms.unquotedExtras) {
+    //   conditions.add(
+    //     name.like('%$u%') | description.like('%$u%')
+    //   );
+    // }
+
+    return conditions.fold(const Constant(true), (prev, expr) => prev & expr);
+  }
 }

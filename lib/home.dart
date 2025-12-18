@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:lyrium/controller.dart';
+import 'package:lyrium/main.dart';
 import 'package:lyrium/models.dart';
 import 'package:lyrium/search.dart';
+import 'package:lyrium/service/service.dart';
 import 'package:lyrium/widgets/app_drawer.dart';
 import 'package:lyrium/widgets/submit_form.dart';
 import 'package:provider/provider.dart';
@@ -17,43 +19,26 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
-    return Consumer<MusicController>(
-      builder: (BuildContext context, MusicController ctrl, Widget? child) {
-        return AnimatedCrossFade(
-          firstChild: Scaffold(
-            body: Center(
-              child: SizedBox(width: 50, child: LinearProgressIndicator()),
-            ),
-          ),
-          secondChild: buildpage(ctrl),
-          crossFadeState: ctrl.isReady
-              ? CrossFadeState.showSecond
-              : CrossFadeState.showFirst,
-          duration: Durations.long1,
+    return Consumer<AppController>(
+      builder: (BuildContext context, AppController ctrl, Widget? child) {
+        return Builder(
+          builder: (context) {
+            if (ctrl.showTrack) {
+              return Scaffold(
+                drawer: AppDrawer(),
+                appBar: buildLyricsAppBar(ctrl),
+                body: buildcontent(ctrl),
+              );
+            } else {
+              return QuickSearch(initailQuery: ctrl.info);
+            }
+          },
         );
       },
     );
   }
 
-  Widget buildpage(MusicController ctrl) {
-    if (!ctrl.isReady) return SizedBox.shrink();
-
-    return Builder(
-      builder: (context) {
-        if (ctrl.showTrack) {
-          return Scaffold(
-            drawer: buildDrawer(),
-            appBar: buildLyricsAppBar(ctrl),
-            body: buildcontent(ctrl),
-          );
-        } else {
-          return QuickSearch(initailQuery: ctrl.info);
-        }
-      },
-    );
-  }
-
-  AppBar buildLyricsAppBar(MusicController ctrl) {
+  AppBar buildLyricsAppBar(AppController ctrl) {
     return AppBar(
       actions: [
         IconButton(
@@ -90,14 +75,14 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget buildcontent(MusicController ctrl) {
+  Widget buildcontent(AppController ctrl) {
     return Builder(
       builder: (context) {
         if (ctrl.lyrics == null) {
           return Center(
             child: Builder(
               builder: (context) {
-                if (ctrl.hasAccess) {
+                if (ctrl.hasNotificationAccess) {
                   if (ctrl.info != null) {
                     return _buildFetcher(context, ctrl);
                   } else {
@@ -156,7 +141,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  PreferredSize buildnotificationpr(MusicController ctrl) {
+  PreferredSize buildnotificationpr(AppController ctrl) {
     return PreferredSize(
       preferredSize: const Size.fromHeight(5),
       child: LinearProgressIndicator(
@@ -168,14 +153,14 @@ class _HomePageState extends State<HomePage> {
 
   bool busyFeching = false;
 
-  Widget _buildFetcher(BuildContext context, MusicController ctrl) {
+  Widget _buildFetcher(BuildContext context, AppController ctrl) {
     return GestureDetector(
       onTap: () async {
         if (busyFeching) return;
         try {
           busyFeching = true;
           setState(() {});
-          await ctrl.fetchAndSaveLyrics();
+          await ctrl.autoLoad();
         } catch (e) {
           ScaffoldMessenger.of(
             context,
@@ -227,7 +212,12 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             Text(ctrl.info?.artistName ?? ""),
-            Text("Search", style: TextStyle(color: Colors.grey.withAlpha(100))),
+            busyFeching
+                ? LinearProgressIndicator()
+                : Text(
+                    "Search",
+                    style: TextStyle(color: Colors.grey.withAlpha(100)),
+                  ),
           ],
         ),
       ),
@@ -248,11 +238,11 @@ class _HomePageState extends State<HomePage> {
     ],
   );
 
-  Widget _buildAccessRequired(BuildContext context, MusicController? ctrl) {
+  Widget _buildAccessRequired(BuildContext context, AppController? ctrl) {
     if (ctrl == null) {
       return LinearProgressIndicator();
     }
-    if (ctrl.hasAccess) {
+    if (ctrl.hasNotificationAccess) {
       return IconButton(onPressed: () {}, icon: Icon(Icons.search));
     }
     return Column(
@@ -262,18 +252,18 @@ class _HomePageState extends State<HomePage> {
         const SizedBox(height: 16),
         const Text("Enable Notification Access?"),
         ElevatedButton(
-          onPressed: () => ctrl.openNotificationAccessSettings().then((c) {
-            ctrl.rebuildUntil(() => ctrl.hasAccess);
-          }),
+          onPressed: () => openSettingsThenRestart(context),
           child: const Text("Grant Access"),
         ),
       ],
     );
   }
+}
 
-  void showDrawer() {}
-
-  Widget buildDrawer() {
-    return AppDrawer();
-  }
+Future<void> openSettingsThenRestart(BuildContext context) async {
+  await MusicNotificationService.openNotificationAccessSettings();
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (c) => InitialPage()),
+  );
 }

@@ -18,7 +18,6 @@ class LoaderWidget<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Loading...")),
       body: FutureBuilder<T>(
         future: future,
         builder: (context, snapshot) {

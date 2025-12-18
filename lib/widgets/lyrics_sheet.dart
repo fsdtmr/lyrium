@@ -4,7 +4,12 @@ import 'package:lyrium/datahelper.dart';
 import 'package:lyrium/models.dart';
 import 'package:provider/provider.dart';
 
-void showLyricsSheet(BuildContext context, LyricsTrack song, onParentChanged) {
+void showLyricsSheet(
+  BuildContext context,
+  LyricsTrack song,
+  bool isSaved,
+  onParentChanged,
+) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -35,14 +40,12 @@ void showLyricsSheet(BuildContext context, LyricsTrack song, onParentChanged) {
                   children: [
                     IconButton(
                       onPressed: () {
-                        final ctrl = Provider.of<MusicController>(
+                        final ctrl = Provider.of<AppController>(
                           context,
                           listen: false,
                         );
+                        ctrl.openLyrics(song);
 
-                        ctrl.setLyrics(song);
-                        if (ctrl.hasAccess) ctrl.setInfo(null); //TODO: Improve
-                        ctrl.setShowTrackMode(true);
                         Navigator.pop(context);
                       },
                       icon: Icon(Icons.play_arrow),
@@ -70,30 +73,7 @@ void showLyricsSheet(BuildContext context, LyricsTrack song, onParentChanged) {
                         ],
                       ),
                     ),
-                    IconButton(
-                      onPressed: () =>
-                          DataHelper.instance.delete(song).then((c) {
-                            if (c != 0) {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Deleted')),
-                              );
-                              onParentChanged();
-                            }
-                          }),
-                      icon: const Icon(Icons.delete),
-                      tooltip: 'Delete',
-                    ),
-                    IconButton(
-                      onPressed: () =>
-                          DataHelper.instance.saveTrack(song, null).then((c) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Saved')),
-                            );
-                          }),
-                      icon: const Icon(Icons.save),
-                      tooltip: 'Save',
-                    ),
+
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(),
                       icon: const Icon(Icons.close),
@@ -110,6 +90,37 @@ void showLyricsSheet(BuildContext context, LyricsTrack song, onParentChanged) {
                       style: const TextStyle(height: 1.45, fontSize: 15),
                     ),
                   ),
+                ),
+
+                Row(
+                  children: [
+                    isSaved
+                        ? IconButton(
+                            onPressed: () =>
+                                DataHelper.instance.delete(song).then((c) {
+                                  if (c != 0) {
+                                    Navigator.pop(context);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Deleted')),
+                                    );
+                                    onParentChanged();
+                                  }
+                                }),
+                            icon: const Icon(Icons.delete_outline),
+                            tooltip: 'Delete',
+                          )
+                        : IconButton(
+                            onPressed: () => DataHelper.instance
+                                .saveTrack(song, null)
+                                .then((c) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Saved')),
+                                  );
+                                }),
+                            icon: const Icon(Icons.save_outlined),
+                            tooltip: 'Save',
+                          ),
+                  ],
                 ),
                 const SizedBox(height: 8),
               ],

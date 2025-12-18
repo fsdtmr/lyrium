@@ -9,7 +9,7 @@ import 'package:lyrium/utils/lrc.dart';
 import 'package:collection/collection.dart';
 
 class LyricsView extends StatefulWidget {
-  final LyricsController controller;
+  final NonListeningController controller;
 
   final Future<void> Function() onSave;
 

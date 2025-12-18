@@ -2,7 +2,6 @@ import 'package:drift/drift.dart';
 import 'package:lyrium/storage/local.dart';
 import 'package:lyrium/models.dart';
 import 'package:lyrium/utils/search_terms.dart';
-import 'package:lyrium/utils/string.dart';
 
 class DataHelper {
   DataHelper._privateConstructor();
@@ -15,37 +14,61 @@ class DataHelper {
   /// Insert a new track and its lyrics
   Future<int> saveTrack(LyricsTrack data, Track? extra) async {
     isUpdated = true;
+
+    LyricsTrack? existing = await fallbackfinder(data.track);
+
+    if (existing != null) {
+      if (existing.syncedLyrics == data.syncedLyrics) {
+        await insertlinked(data.track, existing.id);
+        return existing.id;
+      }
+    }
+
     final lyricId = await db
         .into(db.lyrics)
-        .insert(
+        .insertReturning(
           LyricsCompanion.insert(
             originId: Value("${data.id}"),
             namespace: Value(data.track.namespace),
             title: data.track.trackName,
             artist: Value(data.track.artistName),
             album: Value(data.track.albumName),
-            duration: data.track.duration ?? extra?.duration ?? 0,
+            duration: data.track.duration,
             instrumental: Value(data.instrumental == true),
             lyrics: Value(data.syncedLyrics ?? data.plainLyrics ?? ''),
           ),
         );
-    return lyricId;
+
+    if (extra != null) {
+      await insertlinked(extra, lyricId.id);
+    }
+
+    return -1;
   }
 
-  Future<List<LyricsTrack>> getAllTracks() async {
-    final allLyrics =
-        await (db.select(db.lyrics)..orderBy([
-              (u) => OrderingTerm(expression: u.id, mode: OrderingMode.desc),
-              (u) => OrderingTerm(expression: u.id),
-            ]))
-            .get();
-
-    return allLyrics.map((e) => LyricsTrack.fromDrift(e)).toList();
+  Future<void> insertlinked(Track extra, int refid) async {
+    await db
+        .into(db.lyrics)
+        .insert(
+          LyricsCompanion.insert(
+            originId: Value("local"),
+            namespace: Value(extra.namespace),
+            title: extra.trackName,
+            artist: Value(extra.artistName),
+            album: Value(extra.albumName),
+            duration: extra.duration,
+            interlinked: Value(refid),
+          ),
+        );
   }
 
   /// Search for tracks
   Future<List<LyricsTrack>> searchTracks(String text) async {
-    if (text.trim().isEmpty) return getAllTracks();
+    if (text.trim().isEmpty) {
+      return instance.db.all().then(
+        (e) => e.map((e) => LyricsTrack.fromDrift(e)).toList(),
+      );
+    }
     final terms = SearchTerms.parse(text);
 
     final filter = db.buildSearchFilter(terms);
@@ -67,6 +90,10 @@ class DataHelper {
       ..limit(1);
 
     final result = await q.getSingleOrNull();
+    if (result == null) {
+      return fallbackfinder(trackInfo);
+    }
+
     return result == null ? null : LyricsTrack.fromDrift(result);
   }
 
@@ -117,33 +144,20 @@ class DataHelper {
           return (db.select(db.lyrics)..where((u) => u.id.equals(c))).get();
         });
   }
-}
 
-extension SearchQuery on AppDatabase {
-  Expression<bool> buildSearchFilter(SearchTerms terms) {
-    final conditions = <Expression<bool>>[];
+  Future<LyricsTrack?> fallbackfinder(Track trackInfo) async {
+    List<Lyric> sel = await (db.select(
+      db.lyrics,
+    )..where((u) => u.title.contains(trackInfo.trackName))).get();
 
-    if (terms.firstTerm.isValid) {
-      conditions.add(lyrics.title.like('%${terms.firstTerm!}%'));
+    if (sel.isEmpty) {
+      sel = await db.all();
     }
-
-    if (terms.firstTerm.isValid) {
-      conditions.add(lyrics.title.like('%${terms.firstTerm!}%'));
-    }
-
-    for (final q in terms.quotedTerms) {
-      if (q.isValid) {
-        conditions.add(lyrics.lyrics.like('%$q%'));
+    for (var element in sel) {
+      if (trackInfo.trackName.contains(element.title)) {
+        return LyricsTrack.fromDrift(element);
       }
     }
-
-    // // any unquoted extras
-    // for (final u in terms.unquotedExtras) {
-    //   conditions.add(
-    //     name.like('%$u%') | description.like('%$u%')
-    //   );
-    // }
-
-    return conditions.fold(const Constant(true), (prev, expr) => prev & expr);
+    return null;
   }
 }

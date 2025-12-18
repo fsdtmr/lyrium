@@ -124,23 +124,23 @@ class _QuickSearchState extends State<QuickSearch> {
       drawer: AppDrawer(),
       appBar: AppBar(
         title: GestureDetector(
-          onTap: () => Provider.of<MusicController>(
+          onTap: () => Provider.of<AppController>(
             context,
             listen: false,
           ).setShowTrackMode(true),
           child: Row(children: [Text("lyrium")]),
         ),
       ),
-      floatingActionButton: query.isNotEmpty
-          ? null
-          : FloatingActionButton.extended(
-              onPressed: () => Provider.of<MusicController>(
+      floatingActionButton: (_results?.isEmpty ?? true) || query.isEmpty
+          ? FloatingActionButton.extended(
+              onPressed: () => Provider.of<AppController>(
                 context,
                 listen: false,
-              ).openEditor(context),
+              ).openEditor(context, initailQuery),
               label: Text("Create New"),
               icon: Icon(Icons.add),
-            ),
+            )
+          : null,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -237,6 +237,7 @@ class _QuickSearchState extends State<QuickSearch> {
                           : _buildNoResults('Not Found', Icons.search_off)
                     : ResultsListView(
                         songs: _results!,
+                        saved: _mode == SearchSource.local,
                         query: _controller.text,
                         onParentChanged: () {
                           _search();
@@ -251,8 +252,8 @@ class _QuickSearchState extends State<QuickSearch> {
   }
 
   Widget _buildNoResults(String name, IconData icon) {
-    return Consumer<MusicController>(
-      builder: (BuildContext context, MusicController value, Widget? child) {
+    return Consumer<AppController>(
+      builder: (BuildContext context, AppController value, Widget? child) {
         return Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -302,7 +303,7 @@ class DefaultHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        Provider.of<MusicController>(
+        Provider.of<AppController>(
           context,
           listen: false,
         ).setShowTrackMode(mode);
@@ -310,7 +311,7 @@ class DefaultHeader extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(20.0),
         child: GestureDetector(
-          onTap: () => Provider.of<MusicController>(
+          onTap: () => Provider.of<AppController>(
             context,
             listen: false,
           ).setShowTrackMode(mode),
@@ -329,12 +330,14 @@ class DefaultHeader extends StatelessWidget {
 class ResultsListView extends StatelessWidget {
   final List<LyricsTrack> songs;
   final String query;
+  final bool saved;
   final dynamic onParentChanged;
   const ResultsListView({
     super.key,
     required this.songs,
     required this.query,
     this.onParentChanged,
+    required this.saved,
   });
 
   Widget _highlight(String text, String query, {TextStyle? style}) {
@@ -419,7 +422,7 @@ class ResultsListView extends StatelessWidget {
                     )
                     .toList(),
           ),
-          onTap: () => showLyricsSheet(context, itemd, onParentChanged),
+          onTap: () => showLyricsSheet(context, itemd, saved, onParentChanged),
         );
       },
     );

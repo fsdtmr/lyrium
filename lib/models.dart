@@ -108,8 +108,8 @@ class LyricsTrack {
     return track;
   }
 
-  static empty() {
-    return LyricsTrack(id: -1, track: Track.fromMap({}));
+  static LyricsTrack empty([Track? initailQuery]) {
+    return LyricsTrack(id: -1, track: initailQuery ?? Track.fromMap({}));
   }
 
   LyricsTrack copyWith({
