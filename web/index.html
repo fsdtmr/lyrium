@@ -29,13 +29,19 @@
             position: relative;
         }
 
+        .loader-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            width: 100%;
+        }
+
         .logo {
             position: absolute;
             width: 150px;
             height: auto;
-            animation:
-                moveX 6s linear infinite alternate,
-                moveY 4s linear infinite alternate;
+
         }
 
         @keyframes moveX {
